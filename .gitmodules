@@ -1,0 +1,59 @@
+[submodule "geometry-source-crochet-simulator"]
+	path = sources/external/crochet-simulator
+	url = https://github.com/timhutton/crochet-simulator.git
+
+[submodule "geometry-source-rogueviz"]
+	path = sources/external/rogueviz
+	url = https://github.com/zenorogue/hyperrogue.git
+
+[submodule "geometry-source-snappy"]
+	path = sources/external/snappy
+	url = https://github.com/3-manifolds/SnapPy.git
+
+[submodule "geometry-source-thurston-geometries"]
+	path = sources/external/thurston-geometries
+	url = https://github.com/henryseg/non-euclidean_VR.git
+
+[submodule "geometry-source-geometry-central"]
+	path = sources/external/geometry-central
+	url = https://github.com/nmwsharp/geometry-central.git
+
+[submodule "geometry-source-flipper"]
+	path = sources/external/flipper
+	url = https://github.com/MarkCBell/flipper.git
+
+[submodule "geometry-source-hyperbolic-honeycombs"]
+	path = sources/external/hyperbolic-honeycombs
+	url = https://github.com/isomorphismes/Hyperbolic-Honeycombs.git
+
+[submodule "geometry-source-knot-complement"]
+	path = sources/external/knot-complement
+	url = https://github.com/isomorphismes/knot-complement.git
+
+[submodule "geometry-source-circlepack"]
+	path = sources/external/circlepack
+	url = https://github.com/kensmath/CirclePack.git
+
+[submodule "geometry-source-regina"]
+	path = sources/external/regina
+	url = https://github.com/regina-normal/regina.git
+
+[submodule "geometry-source-surface-evolver"]
+	path = sources/external/surface-evolver
+	url = https://github.com/kashif/evolver.git
+
+[submodule "geometry-source-ricci-flow"]
+	path = sources/external/ricci-flow
+	url = https://github.com/isomorphisms/ricci_flow.git
+
+[submodule "geometry-source-homogeneous-spaces"]
+	path = sources/external/homogeneous-spaces
+	url = https://github.com/stevejtrettel/homogeneous-spaces.git
+
+[submodule "geometry-source-stitch-meshing"]
+	path = sources/external/stitch-meshing
+	url = https://github.com/kuiwuchn/stitchMeshing.git
+
+[submodule "geometry-source-knittable-stitch-mesh"]
+	path = sources/external/knittable-stitch-mesh
+	url = https://github.com/kuiwuchn/KnittableStitchMesh.git

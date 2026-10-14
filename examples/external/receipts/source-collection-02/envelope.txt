@@ -1,0 +1,8 @@
+GEOMETRY-EXTERNAL-SOURCES-02
+User continuation, 14 October 2026: Add sources.
+
+Targets: isomorphismes/flower, isomorphismes/crystal, isomorphismes/mostow; continue their existing docs/external-geometry-examples branches and draft PRs.
+Recover the remaining original source distributions and full source repository roots. Retrieve official Curved Spaces and Surface Evolver archives, check their contents and source notices, and preserve exact archive digests and file identities for copied source.
+Bind any source checkout modules to immutable upstream commits; preserve original ownership and notices. Do not invent source releases, licenses or a replacement for Yuksel/Casselman/unnamed projects whose source grant or identity is absent.
+Retain all earlier source examples. Update the source index and evidence without claiming engine execution, integration, mathematical or physical acceptance.
+This is source collection, not runtime adoption. No merge/release authority. Independent isomorphisms/ai-ci acceptance remains NOT_RUN.

@@ -1,6 +1,8 @@
 # Explicit external geometry code
 
-33 original code files from 10 source sets are stored here, with the upstream paths retained inside each directory. Files are unchanged; sources.tsv records repository, exact revision, original path, Git blob identity and size. PROVENANCE.md and upstream license files identify the authors and redistribution terms.
+80 original code files from 12 source sets are stored here, with the upstream paths retained inside each directory. Files are unchanged; sources.tsv records repository, exact revision, original path, Git blob identity and size. PROVENANCE.md and upstream license files identify the authors and redistribution terms.
+
+The [complete upstream source roots](../../sources/external/README.md) add 15 pinned Git submodules. The copied Curved Spaces files are bound to the official archive in archive-sources.tsv; the other copied files remain bound to upstream commits in sources.tsv.
 
 ## Start with the operation you want to inspect
 
@@ -15,22 +17,24 @@
 | Geometry Central | [intrinsic_triangulation.cpp](geometry-central/src/surface/intrinsic_triangulation.cpp), [upstream tests](geometry-central/test/src/intrinsic_triangulation_test.cpp) | Intrinsic triangulation operations, refinement and Delaunay comparisons. |
 | Flipper | [lamination.py](flipper/flipper/kernel/lamination.py), [moves.py](flipper/flipper/kernel/moves.py), [encoding tests](flipper/tests/encoding.py) | Curve/lamination operations and mapping-class examples. |
 | Hyperbolic-Honeycombs | [Circle-Packing-2D.frag](hyperbolic-honeycombs/src/Circle-Packing-2D.frag), [DERaytracer.frag](hyperbolic-honeycombs/src/Hyperbolic-Honeycombs-DERaytracer.frag) | Explicit packing and honeycomb raytracing shader code. |
-| Regina | [example3.cpp](regina/engine/triangulation/example3.cpp), [triangulation.py](regina/examples/triangulation.py) | Construct example three-manifold triangulations; query topology and normal surfaces. |
+| Regina | [example3.cpp](regina/engine/triangulation/example3.cpp), [triangulation.py](regina/examples/triangulation.py) | Construct example three-manifold triangulations; query topology and normal surfaces. | 
+| Curved Spaces | [Matrices](<curved-spaces/04 Curved Spaces/Source - common/C code/CurvedSpacesMatrices.c>), [Dirichlet domains](<curved-spaces/04 Curved Spaces/Source - common/C code/CurvedSpacesDirichlet.c>), [simulation](<curved-spaces/04 Curved Spaces/Source - common/C code/CurvedSpacesSimulation.c>) | Original Weeks common C/Metal kernel and shared utilities, with original GPL notices. |
+| Stitch Meshing (2018) | [stitchmeshing.cpp](stitch-meshing/src/core/stitchmeshing.cpp), [dual.cpp](stitch-meshing/src/core/dual.cpp) | Original stitch-mesh construction and topological operations; original LGPL notices retained. |
 
 These are selected original source files. Their upstream packages, shader include dependencies, test frameworks, data assets and browser dependencies are not fully copied. The original languages are retained for study; none becomes a selected application implementation or new build dependency merely by appearing here.
 
-All external source execution, host compilation, numerical acceptance, GPU behavior and physical-device behavior remain NOT_RUN. The execution environment was unavailable during this source-copy update. Copied upstream tests are examples of upstream checks, not reports that those checks ran here. The Knot-complement comparison also retains its known finite-value/NaN validation gaps.
+All external source execution, host compilation, numerical acceptance, GPU behavior and physical-device behavior remain NOT_RUN. Source retrieval and exact-byte/commit checks were completed on 14 October 2026. Copied upstream tests are examples of upstream checks. The Knot-complement comparison retains its known finite-value/NaN validation gaps.
 
-## Sources still to recover
+## Remaining source boundaries
 
-| Source | Exact remaining gap |
+| Source | Current state |
 | --- | --- |
-| Surface Evolver | The mirror exposes cube.fe and cat.fe, but a redistribution notice for that pinned distribution was not established. No assumed license is assigned. |
-| Existing ricci_flow fork | Its source and original upstream were located, but no redistribution license was found in either inspected tree. |
-| Cem Yuksel stitch-mesh work | The author page supplies papers and examples; a matching redistributable source release was not located. |
-| Jeff Weeks, Curved Spaces | The author supplies a source archive; its archive bytes were not retrieved in the unavailable execution environment. |
-| Casselman PostScript packages | The author's manual restricts redistribution; no separate redistribution grant for the selected packages was established. |
+| Surface Evolver | Complete historical source mirror is pinned in sources/external; official 2.70 archive was retrieved and hashed. The mirror is not relabeled as that release, and no blanket redistribution grant for the official archive is invented. |
+| Existing ricci_flow fork | Complete original fork is pinned in sources/external. Its original notices remain authoritative; no new redistribution license is assigned. |
+| Cem Yuksel stitch-mesh work | Actual 2018 Stitch Meshing core source is copied, and the complete repository plus the separate KnittableStitchMesh browser repository are pinned. The distinct 2012 Stitch Meshes system's source release remains unlocated. |
+| Jeff Weeks, Curved Spaces | Recovered: 44 original common C/Metal and shared utility/header code files, original GPL/TermsOfUse, and archive provenance are present. |
+| Casselman PostScript packages | Author source locations are known; a separate redistribution grant for the selected packages remains unresolved. |
 | Earlier unnamed PostScript and D-language engines | Exact project identities remain unresolved. |
-| Trettel homogeneous-spaces candidate | The repository was found, but a source redistribution grant was not established. |
+| Trettel homogeneous-spaces candidate | Complete original repository is pinned in sources/external; its original ownership and notices are preserved without assigning a new grant. |
 
 The existing catalogue retains the physical constructions, literature, missing source identities and proposed studies. It should be read alongside these code files. No substitute source is labeled as the missing original.

@@ -1,0 +1,50 @@
+{
+  "finished_at": "2026-10-14T16:22:34.133437+00:00",
+  "github_sha_declared": null,
+  "parameters": {},
+  "pipeline": "geometry-external-sources-open",
+  "pipeline_path": "pipelines/geometry-external-sources-open.json",
+  "pipeline_sha256": "4fc8c5723bb2dc8c4a55dfa89fdeaf1c872d0cf7dc88af45bcbad38a5d1bcb03",
+  "repository_commit": "b7f944b1391a8a2ea96ee07f6b9c0431311842b0",
+  "runner": {
+    "machine": "x86_64",
+    "python": "3.12.14",
+    "release": "6.18.44",
+    "system": "Linux"
+  },
+  "schema_version": 1,
+  "stages": [
+    {
+      "argv": [
+        "sha256sum",
+        "tasks/geometry-external-examples/GEOMETRY-EXTERNAL-SOURCES-02.txt"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "finished_at": "2026-10-14T16:22:34.130326+00:00",
+      "index": 1,
+      "kind": "command",
+      "name": "job-envelope",
+      "started_at": "2026-10-14T16:22:34.126371+00:00",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "81c528ec0c26d9193c7a64aafe9b12faa5b347181f88f1b864623247b2b02a78"
+    },
+    {
+      "argv": [
+        "uname",
+        "-srm"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "finished_at": "2026-10-14T16:22:34.133412+00:00",
+      "index": 2,
+      "kind": "command",
+      "name": "host-identity",
+      "started_at": "2026-10-14T16:22:34.130445+00:00",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "7d6d6b85d8ef342ed65148536c7bcb514b21e8956797d8a2b3374422da873ffe"
+    }
+  ],
+  "started_at": "2026-10-14T16:22:34.126207+00:00",
+  "status": "PASS"
+}

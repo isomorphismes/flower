@@ -31,9 +31,11 @@ self-contact/material behavior.
 
 ## Explicit code
 
-The repository now contains 33 original source files from ten source sets.
+The repository now contains 80 original source files from twelve source sets.
 Start with [the code index](../examples/external/README.md) and
-[the exact source manifest](../examples/external/sources.tsv).
+[the exact source manifest](../examples/external/sources.tsv),
+[the official archive manifest](../examples/external/archive-sources.tsv), and
+[15 pinned complete source repositories](../sources/external/README.md).
 These include explicit crochet relaxation, hyperbolic geodesic flow, Lorentz
 camera transformations, circle packing, intrinsic triangulations, laminations
 and example three-manifold constructions. Their execution remains unverified.

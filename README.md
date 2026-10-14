@@ -11,3 +11,5 @@ Growth means locally increasing preferred material distances, not adding triangl
 The intended mathematical direction follows Daina Taimiņa and the Institute For Figuring's physical constructions and experimental making. See [external geometry examples](docs/external-geometry-examples.md) for crochet, sewn surfaces, geometry engines and concrete studies for Flower.
 
 Actual upstream source files are available in [explicit code examples](examples/external/README.md), with exact revisions, original Git blob identities and licenses.
+
+The [complete upstream source roots](sources/external/README.md) preserve 15 full source repositories at fixed commits. Official Curved Spaces core sources and original Stitch Meshing code are also copied into the example collection.
