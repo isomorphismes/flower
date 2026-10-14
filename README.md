@@ -9,3 +9,5 @@ Growth means locally increasing preferred material distances, not adding triangl
 ## Mathematical construction references
 
 The intended mathematical direction follows Daina Taimiņa and the Institute For Figuring's physical constructions and experimental making. See [external geometry examples](docs/external-geometry-examples.md) for crochet, sewn surfaces, geometry engines and concrete studies for Flower.
+
+Actual upstream source files are available in [explicit code examples](examples/external/README.md), with exact revisions, original Git blob identities and licenses.

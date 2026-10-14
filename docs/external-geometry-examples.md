@@ -29,13 +29,23 @@ rather than duplicating it. Relevant retained implementation:
 That fixed annulus does not yet implement stitch insertion or calibrated
 self-contact/material behavior.
 
+## Explicit code
+
+The repository now contains 33 original source files from ten source sets.
+Start with [the code index](../examples/external/README.md) and
+[the exact source manifest](../examples/external/sources.tsv).
+These include explicit crochet relaxation, hyperbolic geodesic flow, Lorentz
+camera transformations, circle packing, intrinsic triangulations, laminations
+and example three-manifold constructions. Their execution remains unverified.
+
 ## External sources and examples
 
 These are source references and study examples, checked on 14 October 2026.
 The “local study” column proposes work; it does not report an implemented
 demonstration, an executed external program, or a physical model. Links preserve
-the authors' attribution. No external source code, photographs, or book chapters
-are copied into this catalogue.
+the authors' attribution. Selected original source files, licenses and exact provenance now live in
+[explicit code examples](../examples/external/README.md). Photographs and book
+chapters are not copied.
 
 ### Physical construction and realization
 
@@ -90,7 +100,7 @@ the earlier unnamed reference.
 
 This catalogue records names, source links and proposed study examples. External
 program execution, numerical comparisons, mobile behavior and handmade models
-are NOT_RUN by this documentation change. Where an author page could not be
+are NOT_RUN by this source-collection change. Where an author page could not be
 fetched, a retained author link is a lead rather than a verified live download.
 In particular, CirclePack's author pages were returned by search but direct
 fetch timed out.
