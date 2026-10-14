@@ -1,0 +1,8 @@
+specimen_id	instruction_digest	observation	material_path	loading	unit	repeat1	repeat2	repeat3	resolution	uncertainty	deviation
+NOT_RUN	NOT_RUN	row0_circumference	S0_to_S7_then_seam	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN
+NOT_RUN	NOT_RUN	row1_circumference	S8_to_S19_then_seam	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN
+NOT_RUN	NOT_RUN	row2_circumference	S20_to_S37_then_seam	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN
+NOT_RUN	NOT_RUN	row3_circumference	S38_to_S64_then_seam	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN
+NOT_RUN	NOT_RUN	transverse_material_path	DEFINE_ON_DIAGRAM	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN
+NOT_RUN	NOT_RUN	marker_R3_displacement	NAME_TWO_IDS	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN
+NOT_RUN	NOT_RUN	post_manipulation_path	REPEAT_NAMED_PATH	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN	NOT_RUN
