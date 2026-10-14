@@ -5,3 +5,7 @@ An interactive, single-color flower. Use raylib as the initial rendering and inp
 The player holds a region of the flower to grow it. Releasing pauses the flower at its exact current shape. Camera flight, looking and rolling remain independent of growth. Paused time must never accumulate into later growth.
 
 Growth means locally increasing preferred material distances, not adding triangles or playing a timed wave animation. The representation may combine retained data, computation and drawing caches.
+
+## Mathematical construction references
+
+The intended mathematical direction follows Daina Taimiņa and the Institute For Figuring's physical constructions and experimental making. See [external geometry examples](docs/external-geometry-examples.md) for crochet, sewn surfaces, geometry engines and concrete studies for Flower.
