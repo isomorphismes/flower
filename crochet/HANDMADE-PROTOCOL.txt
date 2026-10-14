@@ -1,0 +1,115 @@
+FLOWER-HANDMADE-01 — one manipulable sample and a no-increase control
+
+Origin: https://github.com/isomorphisms/flexible-pipes/issues/136
+Construction: https://github.com/isomorphisms/flexible-pipes/issues/121
+Metric: https://github.com/isomorphisms/flexible-pipes/issues/123
+Realization benchmark: https://github.com/isomorphisms/flexible-pipes/issues/135
+
+Status: PROTOCOL READY. ACTUAL HANDMADE CONSTRUCTION AND MEASUREMENTS NOT_RUN.
+No filled-in observation, specimen, photo, physical curvature or phone result
+is supplied by this file. A human construction step is necessary.
+
+Use the exact generated INSTRUCTIONS.txt for the increasing ledger, plus the
+control instructions, from the same accepted source/artifact revision. The
+human summary is in crochet/README.md. Preserve the artifact digest and the
+instruction file with the sample. Terms are US: single crochet, chain, slip
+stitch. Do not substitute a different stitch convention without recording it.
+
+Recipe cross-check before beginning:
+Foundation: eight chains, untwisted ring, slip join into F0.
+Round0: one single crochet per foundation chain, total8.
+Round1: alternate one and two single crochets into successive parents, total12.
+Round2: same parent rule, total18. Round3: same rule, total27; stop.
+Each round starts with one non-counting lifting chain and ends with a
+non-counting joining slip stitch into its first single crochet. Do not turn.
+The control replaces each increasing round with one child per parent:8,8,8,8.
+Both children of an increase count. The next round after27 is unspecified.
+
+1. Record the construction conditions.
+
+Record maker identifier and date, instruction revision/digest, yarn product,
+fiber composition, nominal yarn size, number of strands, hook size, stitch
+convention, working-loop convention, joining method and whether blocked or
+washed. Use the same yarn, hook and loop convention for the two samples.
+Record any deviation immediately. Do not edit the ledger to conceal a mistaken
+increase or counted join; either remake that portion or identify the variant.
+
+2. Recount and identify the material.
+
+Keep the first-stitch marker. Global increasing IDs run S0..S64. Row starts
+are S0,S8,S20,S38; row ends S7,S19,S37,S64. Use the emitted incidence diagram
+to locate parents and second children. Distinct foundation IDs are F0..F7.
+Record each row count and increase count:8/0,12/4,18/6,27/9. The counted total
+is65 and total increases19. Control row starts are S0,S8,S16,S24, total32.
+Have a second person recount if available; otherwise record that the recount
+was by the same maker. Do not label this independent external verification.
+
+3. Record an unloaded state and a declared repeatable measurement method.
+
+Let the fabric rest under the recorded conditions. State whether supported on
+a table, loosely held, suspended, or blocked. Record loading as unloaded or
+state the known applied force and how it was applied. If using a mass, record
+the mass and apparatus instead of silently treating grams as force units.
+Make at least three repeat measurements with repositioning. Record resolution,
+range and uncertainty; preserve raw values, not only a fitted average.
+
+Measure along material paths using a flexible nonstretch thread or tape. For
+each row measure its full circumference along the named single-crochet row,
+including the declared seam path. Measure short marked arcs between named IDs
+and repeated transverse paths between rows. Define each path on the incidence
+diagram so that another person can reproduce it. A parent-to-child path is
+not automatically a constant-theta meridian of the synthetic chart.
+
+Keep three quantities separate: path length along the fabric, R3 straight-line
+distance between markers, and distance in a photograph. Do not use a flattened
+photograph or diameter times pi as a substitute for an intrinsic circumference.
+
+4. Compare calibration choices without turning them into observations.
+
+The current software used synthetic a=pi/16 and h=log(3/2) in arbitrary length
+units. Those values were not measured. Fit or choose a length scale only after
+recording raw sample dimensions. One comparison may use a=C0/8 and predict
+C1=12a,C2=18a,C3=27a; report the three residuals and repeated-measurement ranges.
+Check separately whether a roughly constant transverse row spacing is supported.
+The exponential interpolation and its curvature remain model assumptions.
+Four circumference measurements alone do not establish constant Gaussian
+curvature, a unique smooth metric or a calibrated constitutive law.
+
+5. Manipulate and examine the object.
+
+Record whether the same marked material paths keep their lengths, within the
+measurement uncertainty and stated loading, while the sample is gently folded,
+opened and released. Describe folds, contact, spring-back and persistent creases.
+Repeat selected paths after manipulation. A change in 3D shape with unchanged
+material lengths is evidence about this specimen's flexibility; it is not proof
+of exact isometry. Do not force the object into the supplied revolution shape.
+
+Photograph the same named markers with a scale and a written state label if
+useful, including seam and both sides. Photos document appearance and marker
+placement; they cannot alone certify intrinsic distances or curvature.
+Retain the sample so another person can manipulate and inspect it.
+
+6. Record acceptance columns separately.
+
+Source/instruction revision: ______
+Host ledger check: ______   Independent mathematical oracle: ______
+Human maker completed sample: NOT_RUN / date and specimen ID ______
+Independent recount: NOT_RUN / method and result ______
+Measured gauge: NOT_RUN / raw record ______
+Manipulation observations: NOT_RUN / raw record ______
+Model comparison: NOT_RUN / assumptions and residuals ______
+GPU/MIRO A1/C67: NOT_RUN unless separately executed ______
+
+The handmade step passes when the exact construction can be followed and
+recounted, raw geometry/loading observations are traceable, deviations are
+explicit, and the object is available for physical inspection. Model mismatch
+is a meaningful experimental result; it must not be hidden to obtain PASS.
+Claiming a constant-curvature physical metric or validated yarn mechanics
+requires additional evidence beyond this bounded construction acceptance.
+
+Primary sources:
+https://pi.math.cornell.edu/~dtaimina/crochet/hplane.htm
+https://www.theiff.org/publications/cab16-crochet.html
+https://www.theiff.org/exhibits/reef.html
+This joined-round four-round fixture is an explicit project adaptation of the
+physical mathematical approach, not an attributed exact Taimina pattern.
