@@ -1,0 +1,1 @@
+static const char flower_default_policy[] = "@FLOWER_POLICY_TEXT@";

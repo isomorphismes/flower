@@ -1,0 +1,23 @@
+plugins { id "com.android.application" }
+android {
+    namespace "org.isomorphisms.flower"
+    compileSdk 34
+    defaultConfig {
+        applicationId "org.isomorphisms.flower"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "0.1-topology-test"
+        ndk { abiFilters "armeabi-v7a" }
+    }
+    signingConfigs {
+        development {
+            storeFile rootProject.file("android/dev-test.jks")
+            storePassword "android"
+            keyAlias "flower-test"
+            keyPassword "android"
+        }
+    }
+    buildTypes { debug { signingConfig signingConfigs.development } }
+    packaging { jniLibs { useLegacyPackaging = true } }
+}
