@@ -33,6 +33,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Source-pinned opt-in consumer; this job packages an actual diagram APK.
+      - name: Checkout corrected Subpixel native source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: isomorphisms/rough.framebuffer
+          ref: efff5fbe71d8722d713282c478dbdb52fa280f9b
+          path: rough-subpixel
+          persist-credentials: false
+      - name: Verify the exact consumed Subpixel checkout
+        run: |
+          set -euo pipefail
+          test "$(git -C rough-subpixel rev-parse HEAD)" = efff5fbe71d8722d713282c478dbdb52fa280f9b
+          test -f rough-subpixel/src/subpixel_framebuffer.h
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -45,12 +59,12 @@ jobs:
       - name: Install Android components
         run: '"$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "ndk;26.3.11579264"'
       - name: Configure real raylib and Lua Android host
-        run: cmake -S . -B build/android -G Ninja -DCMAKE_TOOLCHAIN_FILE="$ANDROID_SDK_ROOT/ndk/26.3.11579264/build/cmake/android.toolchain.cmake" -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=24 -DCMAKE_BUILD_TYPE=Release -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$GITHUB_WORKSPACE/app/src/main/jniLibs/armeabi-v7a"
+        run: cmake -S . -B build/android -G Ninja -DCMAKE_TOOLCHAIN_FILE="$ANDROID_SDK_ROOT/ndk/26.3.11579264/build/cmake/android.toolchain.cmake" -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=24 -DCMAKE_BUILD_TYPE=Release -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$GITHUB_WORKSPACE/app/src/main/jniLibs/armeabi-v7a" -DFLOWER_SUBPIXEL_SOURCE="$GITHUB_WORKSPACE/rough-subpixel" -DFLOWER_SUBPIXEL_EXPECTED_SHA=efff5fbe71d8722d713282c478dbdb52fa280f9b
       - name: Compile and link real native Android target
         run: cmake --build build/android --parallel 2
       - name: Inspect native ABI and symbols
         run: '"$ANDROID_SDK_ROOT/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h -s app/src/main/jniLibs/armeabi-v7a/libflower.so'
-      - name: Package signed test APK
+      - name: Package signed pinned-subpixel Flower test APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Verify APK signature
         run: '"$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk'
