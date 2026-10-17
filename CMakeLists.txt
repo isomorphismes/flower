@@ -30,6 +30,36 @@ set_target_properties(flower_construction PROPERTIES POSITION_INDEPENDENT_CODE O
 add_library(flower_policy STATIC src/flower_policy.c)
 target_link_libraries(flower_policy PUBLIC flower_core flower_lua m)
 set_target_properties(flower_policy PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Optional exact source pin shared by host tests and actual Android application.
+# The user-visible app uses no fallback renderer or obsolete name.
+set(FLOWER_SUBPIXEL_SOURCE "" CACHE PATH "Checkout of corrected subpixel source")
+set(FLOWER_SUBPIXEL_EXPECTED_SHA "" CACHE STRING "Pinned commit of corrected subpixel source")
+if(FLOWER_SUBPIXEL_SOURCE)
+    if(NOT FLOWER_SUBPIXEL_EXPECTED_SHA OR
+       NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include/subpixel/curve_patch.h" OR
+       NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
+        message(FATAL_ERROR "Corrected subpixel source and exact commit pin required (SUN #120)")
+    endif()
+    execute_process(COMMAND git -C "${FLOWER_SUBPIXEL_SOURCE}" rev-parse HEAD
+        OUTPUT_VARIABLE actual_subpixel_head OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE subpixel_git_status)
+    if(NOT subpixel_git_status EQUAL 0 OR
+       NOT actual_subpixel_head STREQUAL FLOWER_SUBPIXEL_EXPECTED_SHA)
+        message(FATAL_ERROR "subpixel checkout HEAD does not match required exact SHA")
+    endif()
+    add_library(flower_subpixel STATIC
+        src/flower_subpixel.c
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch.c"
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch_5x5.c"
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/coverage_plane.c"
+        "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
+    target_include_directories(flower_subpixel PUBLIC src
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include"
+        "${FLOWER_SUBPIXEL_SOURCE}/src")
+    target_link_libraries(flower_subpixel PUBLIC flower_construction m)
+    set_target_properties(flower_subpixel PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
 if(FLOWER_CORE_ONLY)
     enable_testing()
     add_executable(test_flower tests/test_flower.c)
@@ -45,33 +75,7 @@ if(FLOWER_CORE_ONLY)
     add_test(NAME hold_regressions COMMAND test_flower)
     add_test(NAME architecture COMMAND test_architecture)
     add_test(NAME construction_material_marks COMMAND test_construction)
-    # Optional consumer must name an actual renamed subpixel checkout.
-    # No fallback to old typo paths or implicit downloads is allowed.
-    set(FLOWER_SUBPIXEL_SOURCE "" CACHE PATH "Checkout of corrected subpixel source")
-    set(FLOWER_SUBPIXEL_EXPECTED_SHA "" CACHE STRING "Pinned commit of corrected subpixel source")
-    if(FLOWER_SUBPIXEL_SOURCE)
-        if(NOT FLOWER_SUBPIXEL_EXPECTED_SHA OR
-           NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include/subpixel/curve_patch.h" OR
-           NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
-            message(FATAL_ERROR "Corrected subpixel source and exact commit pin required (SUN #120)")
-        endif()
-        execute_process(COMMAND git -C "${FLOWER_SUBPIXEL_SOURCE}" rev-parse HEAD
-            OUTPUT_VARIABLE actual_subpixel_head OUTPUT_STRIP_TRAILING_WHITESPACE
-            RESULT_VARIABLE subpixel_git_status)
-        if(NOT subpixel_git_status EQUAL 0 OR
-           NOT actual_subpixel_head STREQUAL FLOWER_SUBPIXEL_EXPECTED_SHA)
-            message(FATAL_ERROR "subpixel checkout HEAD does not match required exact SHA")
-        endif()
-        add_library(flower_subpixel STATIC
-            src/flower_subpixel.c
-            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch.c"
-            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch_5x5.c"
-            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/coverage_plane.c"
-            "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
-        target_include_directories(flower_subpixel PUBLIC src
-            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include"
-            "${FLOWER_SUBPIXEL_SOURCE}/src")
-        target_link_libraries(flower_subpixel PUBLIC flower_construction m)
+    if(TARGET flower_subpixel)
         add_executable(test_subpixel_construction tests/test_subpixel_construction.c)
         target_link_libraries(test_subpixel_construction PRIVATE flower_subpixel)
         target_compile_options(test_subpixel_construction PRIVATE -Wall -Wextra -Werror -pedantic)
@@ -123,3 +127,7 @@ endif()
 target_compile_options(flower PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(flower PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(flower PRIVATE flower_policy raylib m)
+if(TARGET flower_subpixel)
+    target_compile_definitions(flower PRIVATE FLOWER_HAVE_SUBPIXEL=1)
+    target_link_libraries(flower PRIVATE flower_subpixel)
+endif()
