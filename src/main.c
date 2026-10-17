@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef FLOWER_HAVE_SUBPIXEL
+#include "flower_diagram.h"
+#endif
 
 static Flower flower;
 static FlowerHold hold;
@@ -15,6 +18,9 @@ static FlowerMesh display;
 static FlowerPolicy policy;
 static int display_density=1;
 static bool platform_active=true;
+#ifdef FLOWER_HAVE_SUBPIXEL
+static FlowerDiagram material_diagram;
+#endif
 #if defined(PLATFORM_ANDROID)
 #include <android_native_app_glue.h>
 /* Export present at the pinned raylib 5.5 commit; not assumed across versions. */
@@ -110,7 +116,11 @@ static Mesh mesh_create(void) {
 }
 
 #if defined(PLATFORM_ANDROID)
-enum { UNUSED,GROW,LOOK,MOVE,LIFT,LOWER,ROLL_LEFT,ROLL_RIGHT,IGNORE,DENSITY };
+enum { UNUSED,GROW,LOOK,MOVE,LIFT,LOWER,ROLL_LEFT,ROLL_RIGHT,IGNORE,DENSITY
+#ifdef FLOWER_HAVE_SUBPIXEL
+       ,DIAGRAM,SAMPLING
+#endif
+};
 typedef struct { int id,role; bool seen; Vector2 start,last; } Contact;
 static Contact contacts[8];
 static Rectangle pad(int role) {
@@ -121,6 +131,10 @@ static Rectangle pad(int role) {
 }
 static int role_at(Vector2 point) {
     if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-140,12,130,56})) return DENSITY;
+#ifdef FLOWER_HAVE_SUBPIXEL
+    if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-290,12,130,56})) return SAMPLING;
+    if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-440,12,130,56})) return DIAGRAM;
+#endif
     for (int role=LOOK;role<=ROLL_RIGHT;role++) if (CheckCollisionPointRec(point,pad(role))) return role;
     return GROW;
 }
@@ -141,6 +155,10 @@ static bool touch_frame(Camera3D *camera,float camera_seconds,double growth_seco
             if (slot<0) { flower_hold_cancel(&hold); continue; }
             contacts[slot]=(Contact){.id=id,.role=role_at(point),.start=point,.last=point};
             if (contacts[slot].role==DENSITY) display_density=3-display_density;
+#ifdef FLOWER_HAVE_SUBPIXEL
+            if (contacts[slot].role==DIAGRAM) flower_diagram_toggle(&material_diagram);
+            if (contacts[slot].role==SAMPLING) flower_diagram_cycle_sampling(&material_diagram);
+#endif
             if (contacts[slot].role==GROW && !flower_hold_begin(&hold,id,true,true,pick(point,*camera))) contacts[slot].role=IGNORE;
         }
         Contact *contact=&contacts[slot]; contact->seen=true;
@@ -179,6 +197,9 @@ static void draw_touch_controls(void) {
 int main(int argc,char **argv) {
     (void)argc; (void)argv;
     flower_init(&flower); flower_hold_init(&hold);
+#ifdef FLOWER_HAVE_SUBPIXEL
+    flower_diagram_init(&material_diagram);
+#endif
     policy=flower_policy_default(); char policy_error[256];
     if (!flower_policy_lua(&policy,flower_default_policy,policy_error,sizeof(policy_error))) {
         fprintf(stderr,"Flower policy failed: %s\n",policy_error); return 1;
@@ -211,12 +232,32 @@ int main(int argc,char **argv) {
         bool down=IsMouseButtonDown(MOUSE_BUTTON_LEFT), pressed=IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
         FlowerHit hit=pick(GetMousePosition(),camera);
         bool density_control=CheckCollisionPointRec(GetMousePosition(),(Rectangle){GetScreenWidth()-140,12,130,56});
+#ifdef FLOWER_HAVE_SUBPIXEL
+        bool diagram_control=CheckCollisionPointRec(GetMousePosition(),(Rectangle){GetScreenWidth()-440,12,130,56});
+        bool sampling_control=CheckCollisionPointRec(GetMousePosition(),(Rectangle){GetScreenWidth()-290,12,130,56});
+        if (density_control || diagram_control || sampling_control) hit=(FlowerHit){0};
+        if (pressed && focused && diagram_control) flower_diagram_toggle(&material_diagram);
+        if (pressed && focused && sampling_control) flower_diagram_cycle_sampling(&material_diagram);
+#else
         if (density_control) hit=(FlowerHit){0};
+#endif
         if (pressed && focused && density_control) display_density=3-display_density;
         if (!down && focused) flower_hold_all_released(&hold);
         if (pressed) flower_hold_begin(&hold,-2,true,focused,hit);
         changed=flower_hold_frame_policy(&flower,&hold,-2,down,focused,hit,pressed?0:seconds,&policy);
         if (IsKeyPressed(KEY_T)) display_density=3-display_density;
+#ifdef FLOWER_HAVE_SUBPIXEL
+        if (focused && IsKeyPressed(KEY_P)) flower_diagram_toggle(&material_diagram);
+        if (focused && IsKeyPressed(KEY_O)) flower_diagram_cycle_sampling(&material_diagram);
+#endif
+#endif
+#ifdef FLOWER_HAVE_SUBPIXEL
+        /* Zero allocations or samples when the optional diagram is disabled.
+         * A chart failure disables only the chart, never the flower simulation. */
+        if (!flower_diagram_update(&material_diagram,&flower.net)) {
+            TraceLog(LOG_ERROR,"Optional flat material diagram unavailable");
+            flower_diagram_toggle(&material_diagram);
+        }
 #endif
         if (display.density!=display_density) { UnloadMesh(mesh); mesh=mesh_create(); }
         else if (changed) mesh_refresh(&mesh,true);
@@ -224,16 +265,33 @@ int main(int argc,char **argv) {
         BeginMode3D(camera); rlDisableBackfaceCulling();
         DrawMesh(mesh,material,(Matrix){.m0=1,.m5=1,.m10=1,.m15=1});
         rlEnableBackfaceCulling(); EndMode3D();
+#ifdef FLOWER_HAVE_SUBPIXEL
+        /* Separate opaque 2D pane, never lines through an occluded 3D fold. */
+        flower_diagram_draw(&material_diagram);
+#endif
         DrawText(changed?"GROWING":"PAUSED",18,18,24,LIGHTGRAY);
         DrawText("Hold a flower region. Release to freeze.",18,48,16,LIGHTGRAY);
         DrawRectangle(GetScreenWidth()-140,12,130,56,(Color){29,32,40,230});
         DrawText(display_density==1?"MESH 1x":"MESH 2x",GetScreenWidth()-132,30,18,LIGHTGRAY);
+#ifdef FLOWER_HAVE_SUBPIXEL
+        DrawRectangle(GetScreenWidth()-440,12,130,56,(Color){29,32,40,230});
+        DrawText(material_diagram.enabled?"NET ON":"NET OFF",GetScreenWidth()-432,30,18,LIGHTGRAY);
+        DrawRectangle(GetScreenWidth()-290,12,130,56,(Color){29,32,40,230});
+        DrawText(material_diagram.model==FLOWER_CURVE_3X3?"CURVE 3x3":"CURVE 5x5",
+                 GetScreenWidth()-282,30,18,LIGHTGRAY);
+#endif
 #if defined(PLATFORM_ANDROID)
         draw_touch_controls();
 #else
         DrawText("WASD: fly  Q/E: down/up  right drag: look  Z/X: roll  T: mesh",18,GetScreenHeight()-28,15,LIGHTGRAY);
+#ifdef FLOWER_HAVE_SUBPIXEL
+        DrawText("P: flat NET diagram    O: 3x3 / 5x5",18,GetScreenHeight()-48,15,LIGHTGRAY);
+#endif
 #endif
         EndDrawing();
     }
+#ifdef FLOWER_HAVE_SUBPIXEL
+    flower_diagram_free(&material_diagram);
+#endif
     flower_mesh_free(&display); UnloadMaterial(material); UnloadMesh(mesh); CloseWindow(); return 0;
 }
