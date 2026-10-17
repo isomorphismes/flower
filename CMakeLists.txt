@@ -45,6 +45,48 @@ if(FLOWER_CORE_ONLY)
     add_test(NAME hold_regressions COMMAND test_flower)
     add_test(NAME architecture COMMAND test_architecture)
     add_test(NAME construction_material_marks COMMAND test_construction)
+    # Optional consumer must name an actual renamed subpixel checkout.
+    # No fallback to old typo paths or implicit downloads is allowed.
+    set(FLOWER_SUBPIXEL_SOURCE "" CACHE PATH "Checkout of corrected subpixel source")
+    set(FLOWER_SUBPIXEL_EXPECTED_SHA "" CACHE STRING "Pinned commit of corrected subpixel source")
+    if(FLOWER_SUBPIXEL_SOURCE)
+        if(NOT FLOWER_SUBPIXEL_EXPECTED_SHA OR
+           NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include/subpixel/curve_patch.h" OR
+           NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
+            message(FATAL_ERROR "Corrected subpixel source and exact commit pin required (SUN #120)")
+        endif()
+        execute_process(COMMAND git -C "${FLOWER_SUBPIXEL_SOURCE}" rev-parse HEAD
+            OUTPUT_VARIABLE actual_subpixel_head OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE subpixel_git_status)
+        if(NOT subpixel_git_status EQUAL 0 OR
+           NOT actual_subpixel_head STREQUAL FLOWER_SUBPIXEL_EXPECTED_SHA)
+            message(FATAL_ERROR "subpixel checkout HEAD does not match required exact SHA")
+        endif()
+        add_library(flower_subpixel STATIC
+            src/flower_subpixel.c
+            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch.c"
+            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch_5x5.c"
+            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/coverage_plane.c"
+            "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
+        target_include_directories(flower_subpixel PUBLIC src
+            "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include"
+            "${FLOWER_SUBPIXEL_SOURCE}/src")
+        target_link_libraries(flower_subpixel PUBLIC flower_construction m)
+        add_executable(test_subpixel_construction tests/test_subpixel_construction.c)
+        target_link_libraries(test_subpixel_construction PRIVATE flower_subpixel)
+        target_compile_options(test_subpixel_construction PRIVATE -Wall -Wextra -Werror -pedantic)
+        target_compile_definitions(test_subpixel_construction PRIVATE NDEBUG)
+        add_test(NAME independent_subpixel_oracles COMMAND test_subpixel_construction)
+        add_executable(flower_construction_preview examples/flower_construction_preview.c)
+        target_link_libraries(flower_construction_preview PRIVATE flower_subpixel)
+        target_compile_options(flower_construction_preview PRIVATE -Wall -Wextra -Werror -pedantic)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/artifacts")
+        add_custom_target(construction_preview_ppm
+            COMMAND $<TARGET_FILE:flower_construction_preview>
+                "${CMAKE_CURRENT_BINARY_DIR}/artifacts/flower-construction-compare.ppm"
+            DEPENDS flower_construction_preview
+            COMMENT "Render material chart: binary illustration / quadratic 3x3 / cubic 5x5")
+    endif()
     return()
 endif()
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/policy/default.lua" FLOWER_POLICY_TEXT)
