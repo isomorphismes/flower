@@ -12,7 +12,6 @@
 
 enum { W=160, H=160, STRIDE=164 };
 static uint64_t words[STRIDE*H], prior[STRIDE*H];
-static uint32_t colors[(W+2)*H];
 static unsigned count_bits(uint64_t x) {
     unsigned n=0;
     while (x) { x &= x-1; ++n; }
