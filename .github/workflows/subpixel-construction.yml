@@ -63,13 +63,13 @@ jobs:
           python3 - "$file" <<'PY'
           import hashlib, pathlib, sys
           raw = pathlib.Path(sys.argv[1]).read_bytes()
-          marker = b'P6\n576 192\n255\n'
+          marker = b'P6\n576 288\n255\n'
           assert raw.startswith(marker)
-          assert len(raw) == len(marker) + 576 * 192 * 3
+          assert len(raw) == len(marker) + 576 * 288 * 3
           pixels = raw[len(marker):]
           for start in (0, 192, 384):
               part = bytearray()
-              for row in range(192):
+              for row in range(288):
                   lo = (row*576 + start)*3
                   part.extend(pixels[lo:lo + 192*3])
               assert len(set(part)) > 2, 'flat or fabricated panel'
