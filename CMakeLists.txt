@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
-# Product application C for the MIRO A1 is A32, never an implicit Thumb lane.
-if(DEFINED ANDROID_ARM_MODE AND NOT ANDROID_ARM_MODE STREQUAL "arm")
-    message(FATAL_ERROR "Flower MIRO requires ANDROID_ARM_MODE=arm")
+# MIRO A1 uses ARMv7 A32, not implicit Thumb. The C67 is AArch64,
+# where ANDROID_ARM_MODE has no meaning and must not be forced.
+if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
+    if(DEFINED ANDROID_ARM_MODE AND NOT ANDROID_ARM_MODE STREQUAL "arm")
+        message(FATAL_ERROR "MIRO A1 requires A32 (ANDROID_ARM_MODE=arm)")
+    endif()
+    set(ANDROID_ARM_MODE arm CACHE STRING "MIRO A1 instruction state")
 endif()
-set(ANDROID_ARM_MODE arm CACHE STRING "MIRO A1 A32 instruction state")
 project(flower C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -114,8 +117,9 @@ FetchContent_Declare(raylib
     GIT_TAG c1ab645ca298a2801097931d1079b10ff7eb9df8)
 FetchContent_MakeAvailable(raylib)
 if(ANDROID)
-    if(NOT ANDROID_ABI STREQUAL "armeabi-v7a")
-        message(FATAL_ERROR "This initial product target is armeabi-v7a only.")
+    if(NOT ANDROID_ABI STREQUAL "armeabi-v7a" AND
+       NOT ANDROID_ABI STREQUAL "arm64-v8a")
+        message(FATAL_ERROR "Flower MIRO builds require armeabi-v7a (A1) or arm64-v8a (C67)")
     endif()
     add_library(flower SHARED src/main.c)
     target_compile_definitions(flower PRIVATE PLATFORM_ANDROID GRAPHICS_API_OPENGL_ES2)
