@@ -1,4 +1,10 @@
 plugins { id "com.android.application" }
+// An explicit build invocation chooses the ABI. A1 stays the default;
+// C67 is AArch64 and never inherits an ARMv7-only JNI directory.
+def flowerAbi = (project.findProperty("flowerAbi") ?: "armeabi-v7a").toString()
+if (!(flowerAbi in ["armeabi-v7a", "arm64-v8a"])) {
+    throw new GradleException("Unsupported Flower MIRO ABI: " + flowerAbi)
+}
 android {
     namespace "org.isomorphisms.flower"
     compileSdk 34
@@ -8,7 +14,7 @@ android {
         targetSdk 34
         versionCode 1
         versionName "0.1-topology-test"
-        ndk { abiFilters "armeabi-v7a" }
+        ndk { abiFilters flowerAbi }
     }
     signingConfigs {
         development {
