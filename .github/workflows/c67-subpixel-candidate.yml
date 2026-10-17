@@ -62,12 +62,16 @@ jobs:
           lib=app/src/main/jniLibs/arm64-v8a/libflower.so
           test -s "$lib"
           readelf="$ANDROID_SDK_ROOT/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-          "$readelf" -h "$lib" | grep -q 'Class:.*ELF64'
-          "$readelf" -h "$lib" | grep -q 'Machine:.*AArch64'
-          "$readelf" -sW "$lib" | grep -q 'flower_diagram_update'
-          "$readelf" -sW "$lib" | grep -q 'flower_subpixel_round'
-          "$readelf" -sW "$lib" | grep -q 'rough_blend_subpixel_coverage'
-          "$readelf" -sW "$lib" | grep -q 'ANativeActivity_onCreate'
+          # Reading full output before grep avoids a false broken-pipe
+          # failure (llvm-readelf can exit 74 when grep -q closes early).
+          "$readelf" -h "$lib" > "$RUNNER_TEMP/flower-elf-header.txt"
+          "$readelf" -sW "$lib" > "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Eq 'Class:.*ELF64' "$RUNNER_TEMP/flower-elf-header.txt"
+          grep -Eq 'Machine:.*AArch64' "$RUNNER_TEMP/flower-elf-header.txt"
+          grep -Fq 'flower_diagram_update' "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Fq 'flower_subpixel_round' "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Fq 'rough_blend_subpixel_coverage' "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Fq 'ANativeActivity_onCreate' "$RUNNER_TEMP/flower-elf-symbols.txt"
           sha256sum "$lib"
       - name: Package stable signer C67 test-only APK
         run: gradle --no-daemon -PflowerAbi=arm64-v8a :app:assembleDebug
@@ -81,7 +85,8 @@ jobs:
             echo 'Incorrect A1 ABI also packaged into C67 arm64 candidate' >&2
             exit 1
           fi
-          "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt" dump badging "$apk" | grep "native-code: 'arm64-v8a'"
+          "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt" dump badging "$apk" > "$RUNNER_TEMP/flower-badging.txt"
+          grep -Fx "native-code: 'arm64-v8a'" "$RUNNER_TEMP/flower-badging.txt"
           "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --print-certs "$apk" |
             tee app/build/outputs/apk/debug/SIGNER.txt
           grep -Fq '0cdc0345351b88296870f277a7a7ae1709f7fbc41603a97a8ad71d5931215543' \
