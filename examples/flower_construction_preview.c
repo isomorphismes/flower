@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { W=192, H=192, OUTPUT_W=3*W };
+enum { W=192, H=192, ZOOM=10, ZOOM_SIDE=8, OUTPUT_W=3*W, OUTPUT_H=H+96 };
 static uint64_t mask3[W*H], mask5[W*H];
 static uint32_t color3[W*H], color5[W*H];
 static FlowerNet net;
@@ -25,18 +25,33 @@ static int render(int method, cp_coverage_plane *plane,
     rough_framebuffer target={pixels,W,H,W};
     return flower_subpixel_blend(&target,plane,UINT32_C(0xff192e44),1.0);
 }
+/* Nearest-binary / quadratic coverage / cubic coverage in three adjacent
+ * diagrams; the second row magnifies the SAME oblique 8x8 pixel window 10x
+ * without inventing any new samples. Grid strokes are visual guides only. */
+static uint32_t source_pixel(int panel, int x, int y) {
+    if (panel==0) {
+        unsigned n=0;
+        uint64_t bits=mask3[y*W+x];
+        while(bits) { bits&=bits-1; ++n; }
+        return n>=32?UINT32_C(0xff192e44):UINT32_C(0xffffffff);
+    }
+    if (panel==1) return color3[y*W+x];
+    return color5[y*W+x];
+}
 static int ppm(FILE *output) {
-    if (fprintf(output,"P6\n%d %d\n255\n",OUTPUT_W,H)<0) return 0;
-    for(int y=0;y<H;y++) for(int x=0;x<OUTPUT_W;x++) {
-        uint32_t pixel;
-        if(x<W) {
-            /* Deliberately crude threshold, not an earlier Flower renderer. */
-            unsigned n=0;
-            uint64_t bits=mask3[y*W+x];
-            while(bits) { bits&=bits-1; ++n; }
-            pixel=n>=32?UINT32_C(0xff192e44):UINT32_C(0xffffffff);
-        } else if(x<2*W) pixel=color3[y*W+x-W];
-        else pixel=color5[y*W+x-2*W];
+    if (fprintf(output,"P6\n%d %d\n255\n",OUTPUT_W,OUTPUT_H)<0) return 0;
+    for(int y=0;y<OUTPUT_H;y++) for(int x=0;x<OUTPUT_W;x++) {
+        int panel=x/W;
+        int local_x=x%W;
+        uint32_t pixel=UINT32_C(0xfff4f4f4);
+        if (y<H) pixel=source_pixel(panel,local_x,y);
+        else if (local_x>=12 && local_x<12+ZOOM_SIDE*ZOOM &&
+                 y>=H+8 && y<H+8+ZOOM_SIDE*ZOOM) {
+            int zoom_x=local_x-12, zoom_y=y-H-8;
+            pixel=source_pixel(panel,131+zoom_x/ZOOM,53+zoom_y/ZOOM);
+            if (zoom_x%ZOOM==0 || zoom_y%ZOOM==0)
+                pixel=UINT32_C(0xffa0a0a0);
+        }
         unsigned char rgb[3]={(unsigned char)(pixel>>16),
                               (unsigned char)(pixel>>8),(unsigned char)pixel};
         if(fwrite(rgb,1,3,output)!=3) return 0;
