@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: isomorphisms/ai-ci
-          ref: 987c9e220676ca949f928c4eb973be639d90b5fa
+          ref: 3caba312d0dbe17843186e4499ccf9fbeb219697
           path: fp/oracle
           persist-credentials: false
       - name: Check out Kitchen
