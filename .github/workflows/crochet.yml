@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: isomorphisms/flexible-pipes
-          ref: 64567fef292e60c4a1f3de78a54bcf84229a1a67
+          ref: 43e0c154204dc529e11db8b8f9461105bd09099a
           path: fp
           persist-credentials: false
       - name: Check out exact source head
@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: isomorphisms/ai-ci
-          ref: d9db67cfd89f5e2799eb0b187429be6a03183ec2
+          ref: 987c9e220676ca949f928c4eb973be639d90b5fa
           path: fp/oracle
           persist-credentials: false
       - name: Check out Kitchen
@@ -58,12 +58,31 @@ jobs:
           ref: d6e83969f82512e920fb17b44326cb54f31d015c
           path: fp/ithon
           persist-credentials: false
+      - name: Check out owned Ike orchestrator
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: dilapidated-shed/ike
+          ref: a92fe68bf8aad8dfcfe9f7a7abd84e07290f7fe0
+          path: fp/ike
+          persist-credentials: false
       - name: Open source-bound FP job
         run: python3 fp/scripts/run-pipeline geometry-followups-open
       - name: Acquire and qualify ICK
         id: ick
         uses: isomorphisms/ai-ci/ick-host@4ea071a96239f3a29ca6d98454feb59947d87cfe
       - name: Run crochet and material geometry through FP and Kitchen
+        env:
+          IKE_RECIPE_RUNNER: ${{ github.workspace }}/fp/profile/bin/grease
+          IKE_IKEFILE_IDENTITY: sha256:cbfd9b1c73cf573d5e732091e8819aab8d08b0611c1dda67d7ed6ef21765e7bc
+          IKE_RECEIPT: ${{ github.workspace }}/fp/build/ike-accept.tsv
+          FLOWER_WORKSPACE: ${{ github.workspace }}/fp
+          FLOWER_GREASE: ${{ github.workspace }}/fp/profile/bin/grease
+          FLOWER_KITCHEN_RECIPE: ${{ github.workspace }}/fp/kitchen/tasks/geometry-acceptance/1.grease
+          FLOWER_ITHON: ${{ github.workspace }}/fp/ithon/ithon
+          FLOWER_STITCH_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-stitch/accept.pi
+          FLOWER_METRIC_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-metric/accept.pi
+          FLOWER_TOPOLOGY_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-metric/topology.pi
+          FLOWER_REALIZATION_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-metric/realization.pi
         run: >-
           python3 fp/scripts/run-pipeline flower-followup-acceptance
           --param compiler=${{ steps.ick.outputs.compiler }}
@@ -75,6 +94,7 @@ jobs:
           --param metric_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/accept.pi
           --param topology_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/topology.pi
           --param realization_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/realization.pi
+          --param ikefile_identity=sha256:cbfd9b1c73cf573d5e732091e8819aab8d08b0611c1dda67d7ed6ef21765e7bc
       - name: Retain original evidence and printable construction
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
