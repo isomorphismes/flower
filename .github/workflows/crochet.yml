@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: isomorphisms/ai-ci
-          ref: 3caba312d0dbe17843186e4499ccf9fbeb219697
+          ref: 6f20703ef8f065d3c99dd5398a09ee67c3b19a98
           path: fp/oracle
           persist-credentials: false
       - name: Check out Kitchen
@@ -73,7 +73,7 @@ jobs:
       - name: Run crochet and material geometry through FP and Kitchen
         env:
           IKE_RECIPE_RUNNER: ${{ github.workspace }}/fp/profile/bin/grease
-          IKE_IKEFILE_IDENTITY: sha256:cbfd9b1c73cf573d5e732091e8819aab8d08b0611c1dda67d7ed6ef21765e7bc
+          IKE_IKEFILE_IDENTITY: sha256:ec9726a4a26bf75b6a8441ab70cf61a17e65b6c3dbe903f4a090b3193e8c040b
           IKE_RECEIPT: ${{ github.workspace }}/fp/build/ike-accept.tsv
           FLOWER_WORKSPACE: ${{ github.workspace }}/fp
           FLOWER_GREASE: ${{ github.workspace }}/fp/profile/bin/grease
@@ -94,7 +94,7 @@ jobs:
           --param metric_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/accept.pi
           --param topology_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/topology.pi
           --param realization_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/realization.pi
-          --param ikefile_identity=sha256:cbfd9b1c73cf573d5e732091e8819aab8d08b0611c1dda67d7ed6ef21765e7bc
+          --param ikefile_identity=sha256:ec9726a4a26bf75b6a8441ab70cf61a17e65b6c3dbe903f4a090b3193e8c040b
       - name: Retain original evidence and printable construction
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
