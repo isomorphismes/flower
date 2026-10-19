@@ -1,0 +1,7 @@
+module AnnularMechanics
+
+squared_extension : Number → Number
+squared_extension extension = extension × extension
+
+main : IO ()
+main = if squared_extension 2 ≟ 4 then putChar 'Y' else putChar 'N'
