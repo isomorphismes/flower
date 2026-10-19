@@ -5,6 +5,17 @@
 
 #define FLOWER_TAU 6.283185307179586476925286766559
 
+bool flower_construction_pane_contains(bool visible, int viewport_width,
+                                      double pointer_x, double pointer_y) {
+    if (!visible || viewport_width < 1 || !isfinite(pointer_x) || !isfinite(pointer_y))
+        return false;
+    int left = viewport_width - FLOWER_DIAGRAM_SIDE - 18;
+    if (left < 12) left = 12;
+    return pointer_x >= left - 1 && pointer_x <= left + FLOWER_DIAGRAM_SIDE + 1 &&
+        pointer_y >= FLOWER_DIAGRAM_TOP - 1 &&
+        pointer_y <= FLOWER_DIAGRAM_TOP + FLOWER_DIAGRAM_SIDE + 24;
+}
+
 static bool valid_net(const FlowerNet *net) {
     return net && net->rings >= 1 && net->rings <= FLOWER_RINGS &&
         net->slices >= 3 && net->slices <= FLOWER_SLICES &&

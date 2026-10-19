@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { DIAGRAM_SIDE = 192, DIAGRAM_PIXELS = DIAGRAM_SIDE * DIAGRAM_SIDE };
+enum { DIAGRAM_SIDE = FLOWER_DIAGRAM_SIDE, DIAGRAM_PIXELS = DIAGRAM_SIDE * DIAGRAM_SIDE };
 enum {
     DIAGRAM_TEMP_BYTES = DIAGRAM_PIXELS * (sizeof(uint64_t) + sizeof(uint32_t))
 };
@@ -118,7 +118,7 @@ void flower_diagram_draw(const FlowerDiagram *diagram) {
     if (!diagram || !diagram->enabled || !diagram->texture.id) return;
     int x = GetScreenWidth() - DIAGRAM_SIDE - 18;
     if (x < 12) x = 12;
-    int y = 88;
+    int y = FLOWER_DIAGRAM_TOP;
     DrawTexture(diagram->texture, x, y, WHITE);
     DrawRectangleLines(x-1, y-1, DIAGRAM_SIDE+2, DIAGRAM_SIDE+2, GRAY);
     DrawText(diagram->model == FLOWER_CURVE_3X3
