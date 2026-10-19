@@ -1,0 +1,109 @@
+name: Flower MIRO C67 native ARM64 subpixel APK candidate
+on:
+  pull_request:
+    paths:
+      - 'CMakeLists.txt'
+      - 'app/build.gradle'
+      - 'src/**'
+      - 'app/src/main/**'
+      - '.github/workflows/c67-subpixel-candidate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ndk-arm64-c67-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - name: Checkout exact Flower candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Checkout renamed 3x3/5x5 producer exact source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: isomorphisms/rough.framebuffer
+          ref: efff5fbe71d8722d713282c478dbdb52fa280f9b
+          path: rough-subpixel
+          persist-credentials: false
+      - name: Check exact producer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C rough-subpixel rev-parse HEAD)" = efff5fbe71d8722d713282c478dbdb52fa280f9b
+          test -s rough-subpixel/subpixel/include/subpixel/curve_patch.h
+          test -s rough-subpixel/src/subpixel_framebuffer.c
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Install native Android SDK/NDK
+        run: '"$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "ndk;26.3.11579264"'
+      - name: Configure native Flower raylib 5.5 and Lua for C67 arm64-v8a
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build/android-c67 -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_SDK_ROOT/ndk/26.3.11579264/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=24 -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a" \
+            -DFLOWER_SUBPIXEL_SOURCE="$GITHUB_WORKSPACE/rough-subpixel" \
+            -DFLOWER_SUBPIXEL_EXPECTED_SHA=efff5fbe71d8722d713282c478dbdb52fa280f9b
+      - name: Compile exact C67 NativeActivity with corrected 3x3 and 5x5
+        run: cmake --build build/android-c67 --parallel 2
+      - name: Verify real AArch64 shared library, overlay symbols and NativeActivity
+        shell: bash
+        run: |
+          set -euo pipefail
+          lib=app/src/main/jniLibs/arm64-v8a/libflower.so
+          test -s "$lib"
+          readelf="$ANDROID_SDK_ROOT/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          # Reading full output before grep avoids a false broken-pipe
+          # failure (llvm-readelf can exit 74 when grep -q closes early).
+          "$readelf" -h "$lib" > "$RUNNER_TEMP/flower-elf-header.txt"
+          "$readelf" -sW "$lib" > "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Eq 'Class:.*ELF64' "$RUNNER_TEMP/flower-elf-header.txt"
+          grep -Eq 'Machine:.*AArch64' "$RUNNER_TEMP/flower-elf-header.txt"
+          grep -Fq 'flower_diagram_update' "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Fq 'flower_subpixel_round' "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Fq 'rough_blend_subpixel_coverage' "$RUNNER_TEMP/flower-elf-symbols.txt"
+          grep -Fq 'ANativeActivity_onCreate' "$RUNNER_TEMP/flower-elf-symbols.txt"
+          sha256sum "$lib"
+      - name: Package stable signer C67 test-only APK
+        run: gradle --no-daemon -PflowerAbi=arm64-v8a :app:assembleDebug
+      - name: Inspect package ABI and reject A1-only library in C67 artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          unzip -Z1 "$apk" | grep -Fxq 'lib/arm64-v8a/libflower.so'
+          if unzip -Z1 "$apk" | grep -Fq 'lib/armeabi-v7a/'; then
+            echo 'Incorrect A1 ABI also packaged into C67 arm64 candidate' >&2
+            exit 1
+          fi
+          "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt" dump badging "$apk" > "$RUNNER_TEMP/flower-badging.txt"
+          grep -Fx "native-code: 'arm64-v8a'" "$RUNNER_TEMP/flower-badging.txt"
+          "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --print-certs "$apk" |
+            tee app/build/outputs/apk/debug/SIGNER.txt
+          grep -Fq '0cdc0345351b88296870f277a7a7ae1709f7fbc41603a97a8ad71d5931215543' \
+            app/build/outputs/apk/debug/SIGNER.txt
+          sha256sum "$apk" | tee app/build/outputs/apk/debug/SHA256SUMS.txt
+          git rev-parse HEAD | tee app/build/outputs/apk/debug/SOURCE.txt
+          git -C rough-subpixel rev-parse HEAD | tee app/build/outputs/apk/debug/PRODUCER.txt
+      - name: Keep digest-bound C67 candidate, not a physical receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flower-miro-c67-arm64-subpixel-candidate
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/SIGNER.txt
+            app/build/outputs/apk/debug/SHA256SUMS.txt
+            app/build/outputs/apk/debug/SOURCE.txt
+            app/build/outputs/apk/debug/PRODUCER.txt
+            app/src/main/jniLibs/arm64-v8a/libflower.so
+          if-no-files-found: error
+          retention-days: 14
