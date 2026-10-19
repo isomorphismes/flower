@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
-# Product application C for the MIRO A1 is A32, never an implicit Thumb lane.
-if(DEFINED ANDROID_ARM_MODE AND NOT ANDROID_ARM_MODE STREQUAL "arm")
-    message(FATAL_ERROR "Flower MIRO requires ANDROID_ARM_MODE=arm")
+# MIRO A1 uses ARMv7 A32, not implicit Thumb. The C67 is AArch64,
+# where ANDROID_ARM_MODE has no meaning and must not be forced.
+if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
+    if(DEFINED ANDROID_ARM_MODE AND NOT ANDROID_ARM_MODE STREQUAL "arm")
+        message(FATAL_ERROR "MIRO A1 requires A32 (ANDROID_ARM_MODE=arm)")
+    endif()
+    set(ANDROID_ARM_MODE arm CACHE STRING "MIRO A1 instruction state")
 endif()
-set(ANDROID_ARM_MODE arm CACHE STRING "MIRO A1 A32 instruction state")
 project(flower C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -23,21 +26,74 @@ set_target_properties(flower_lua PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_library(flower_core STATIC src/flower.c src/flower_mesh.c src/flower_camera.c)
 target_include_directories(flower_core PUBLIC src)
 set_target_properties(flower_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(flower_construction STATIC src/flower_construction.c)
+target_include_directories(flower_construction PUBLIC src)
+target_link_libraries(flower_construction PUBLIC flower_core m)
+set_target_properties(flower_construction PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_library(flower_policy STATIC src/flower_policy.c)
 target_link_libraries(flower_policy PUBLIC flower_core flower_lua m)
 set_target_properties(flower_policy PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Optional exact source pin shared by host tests and actual Android application.
+# The user-visible app uses no fallback renderer or obsolete name.
+set(FLOWER_SUBPIXEL_SOURCE "" CACHE PATH "Checkout of corrected subpixel source")
+set(FLOWER_SUBPIXEL_EXPECTED_SHA "" CACHE STRING "Pinned commit of corrected subpixel source")
+if(FLOWER_SUBPIXEL_SOURCE)
+    if(NOT FLOWER_SUBPIXEL_EXPECTED_SHA OR
+       NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include/subpixel/curve_patch.h" OR
+       NOT EXISTS "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
+        message(FATAL_ERROR "Corrected subpixel source and exact commit pin required (SUN #120)")
+    endif()
+    execute_process(COMMAND git -C "${FLOWER_SUBPIXEL_SOURCE}" rev-parse HEAD
+        OUTPUT_VARIABLE actual_subpixel_head OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE subpixel_git_status)
+    if(NOT subpixel_git_status EQUAL 0 OR
+       NOT actual_subpixel_head STREQUAL FLOWER_SUBPIXEL_EXPECTED_SHA)
+        message(FATAL_ERROR "subpixel checkout HEAD does not match required exact SHA")
+    endif()
+    add_library(flower_subpixel STATIC
+        src/flower_subpixel.c
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch.c"
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/curve_patch_5x5.c"
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/src/coverage_plane.c"
+        "${FLOWER_SUBPIXEL_SOURCE}/src/subpixel_framebuffer.c")
+    target_include_directories(flower_subpixel PUBLIC src
+        "${FLOWER_SUBPIXEL_SOURCE}/subpixel/include"
+        "${FLOWER_SUBPIXEL_SOURCE}/src")
+    target_link_libraries(flower_subpixel PUBLIC flower_construction m)
+    set_target_properties(flower_subpixel PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
 if(FLOWER_CORE_ONLY)
     enable_testing()
     add_executable(test_flower tests/test_flower.c)
     target_link_libraries(test_flower PRIVATE flower_core m)
     add_executable(test_architecture tests/test_architecture.c)
     target_link_libraries(test_architecture PRIVATE flower_policy)
-    foreach(target flower_core flower_policy test_flower test_architecture)
+    add_executable(test_construction tests/test_construction.c)
+    target_link_libraries(test_construction PRIVATE flower_construction flower_core m)
+    foreach(target flower_core flower_construction flower_policy test_flower test_architecture test_construction)
         target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -pedantic)
         target_compile_definitions(${target} PRIVATE NDEBUG)
     endforeach()
     add_test(NAME hold_regressions COMMAND test_flower)
     add_test(NAME architecture COMMAND test_architecture)
+    add_test(NAME construction_material_marks COMMAND test_construction)
+    if(TARGET flower_subpixel)
+        add_executable(test_subpixel_construction tests/test_subpixel_construction.c)
+        target_link_libraries(test_subpixel_construction PRIVATE flower_subpixel)
+        target_compile_options(test_subpixel_construction PRIVATE -Wall -Wextra -Werror -pedantic)
+        target_compile_definitions(test_subpixel_construction PRIVATE NDEBUG)
+        add_test(NAME independent_subpixel_oracles COMMAND test_subpixel_construction)
+        add_executable(flower_construction_preview examples/flower_construction_preview.c)
+        target_link_libraries(flower_construction_preview PRIVATE flower_subpixel)
+        target_compile_options(flower_construction_preview PRIVATE -Wall -Wextra -Werror -pedantic)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/artifacts")
+        add_custom_target(construction_preview_ppm
+            COMMAND $<TARGET_FILE:flower_construction_preview>
+                "${CMAKE_CURRENT_BINARY_DIR}/artifacts/flower-construction-compare.ppm"
+            DEPENDS flower_construction_preview
+            COMMENT "Render material chart: binary illustration / quadratic 3x3 / cubic 5x5")
+    endif()
     return()
 endif()
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/policy/default.lua" FLOWER_POLICY_TEXT)
@@ -61,8 +117,9 @@ FetchContent_Declare(raylib
     GIT_TAG c1ab645ca298a2801097931d1079b10ff7eb9df8)
 FetchContent_MakeAvailable(raylib)
 if(ANDROID)
-    if(NOT ANDROID_ABI STREQUAL "armeabi-v7a")
-        message(FATAL_ERROR "This initial product target is armeabi-v7a only.")
+    if(NOT ANDROID_ABI STREQUAL "armeabi-v7a" AND
+       NOT ANDROID_ABI STREQUAL "arm64-v8a")
+        message(FATAL_ERROR "Flower MIRO builds require armeabi-v7a (A1) or arm64-v8a (C67)")
     endif()
     add_library(flower SHARED src/main.c)
     target_compile_definitions(flower PRIVATE PLATFORM_ANDROID GRAPHICS_API_OPENGL_ES2)
@@ -74,3 +131,8 @@ endif()
 target_compile_options(flower PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(flower PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(flower PRIVATE flower_policy raylib m)
+if(TARGET flower_subpixel)
+    target_compile_definitions(flower PRIVATE FLOWER_HAVE_SUBPIXEL=1)
+    target_sources(flower PRIVATE src/flower_diagram.c)
+    target_link_libraries(flower PRIVATE flower_subpixel)
+endif()

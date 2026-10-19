@@ -1,0 +1,87 @@
+name: Flower pinned subpixel construction (host diagnostic)
+on:
+  pull_request:
+    paths:
+      - 'src/flower_construction.*'
+      - 'src/flower_subpixel.*'
+      - 'tests/test_construction.c'
+      - 'tests/test_subpixel_construction.c'
+      - 'examples/flower_construction_preview.c'
+      - 'CMakeLists.txt'
+      - '.github/workflows/subpixel-construction.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned-native-consumer:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact Flower candidate
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Checkout independently renamed source at immutable upstream head
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: isomorphisms/rough.framebuffer
+          ref: efff5fbe71d8722d713282c478dbdb52fa280f9b
+          path: rough-subpixel
+          persist-credentials: false
+      - name: Confirm exact producer and corrected public API
+        run: |
+          set -euo pipefail
+          test "$(git -C rough-subpixel rev-parse HEAD)" = 'efff5fbe71d8722d713282c478dbdb52fa280f9b'
+          test -f rough-subpixel/subpixel/include/subpixel/coverage_plane.h
+          test -f rough-subpixel/src/subpixel_framebuffer.c
+          if test -e rough-subpixel/src/sublixel_framebuffer.h; then exit 1; fi
+      - name: Build real Flower consumer against pinned 3x3 and 5x5 (host diagnostic)
+        run: |
+          set -euo pipefail
+          cmake -S . -B build/subpixel -DFLOWER_CORE_ONLY=ON -DCMAKE_BUILD_TYPE=Release \
+            -DFLOWER_SUBPIXEL_SOURCE="$GITHUB_WORKSPACE/rough-subpixel" \
+            -DFLOWER_SUBPIXEL_EXPECTED_SHA=efff5fbe71d8722d713282c478dbdb52fa280f9b
+          cmake --build build/subpixel --parallel 2
+          ctest --test-dir build/subpixel --output-on-failure -V
+      - name: Reject unknown or stale supplier commit
+        run: |
+          set -euo pipefail
+          if cmake -S . -B build/wrong-pin -DFLOWER_CORE_ONLY=ON \
+            -DFLOWER_SUBPIXEL_SOURCE="$GITHUB_WORKSPACE/rough-subpixel" \
+            -DFLOWER_SUBPIXEL_EXPECTED_SHA=0000000000000000000000000000000000000000 \
+            > "$RUNNER_TEMP/wrong-pin.log" 2>&1; then
+            echo 'Invalid supplier pin was accepted' >&2
+            exit 1
+          fi
+          grep -q 'does not match required exact SHA' "$RUNNER_TEMP/wrong-pin.log"
+      - name: Render actual Flower Net construction chart and record image identity
+        run: |
+          set -euo pipefail
+          cmake --build build/subpixel --target construction_preview_ppm
+          file=build/subpixel/artifacts/flower-construction-compare.ppm
+          test -s "$file"
+          python3 - "$file" <<'PY'
+          import hashlib, pathlib, sys
+          raw = pathlib.Path(sys.argv[1]).read_bytes()
+          marker = b'P6\n576 288\n255\n'
+          assert raw.startswith(marker)
+          assert len(raw) == len(marker) + 576 * 288 * 3
+          pixels = raw[len(marker):]
+          for start in (0, 192, 384):
+              part = bytearray()
+              for row in range(288):
+                  lo = (row*576 + start)*3
+                  part.extend(pixels[lo:lo + 192*3])
+              assert len(set(part)) > 2, 'flat or fabricated panel'
+          print('Flower diagram PPM SHA256', hashlib.sha256(raw).hexdigest())
+          PY
+          sha256sum "$file" | tee build/subpixel/artifacts/SHA256SUMS.txt
+          git rev-parse HEAD > build/subpixel/artifacts/FLOWER_HEAD.txt
+          git -C rough-subpixel rev-parse HEAD > build/subpixel/artifacts/SUBPIXEL_HEAD.txt
+      - name: Retain PPM preview and pinned source receipts (host diagnostic only)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flower-material-chart-3x3-5x5-host
+          path: build/subpixel/artifacts/
+          if-no-files-found: error
+          retention-days: 14
