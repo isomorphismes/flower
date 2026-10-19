@@ -85,6 +85,10 @@ of the requested mechanical realization job. A mechanical model still needs
 an explicit constitutive choice, reference curvature, thickness/contact policy,
 boundary conditions, equilibrium residual and independent failure tests. Those
 are separate from reconstructing one exact isometry of the supplied metric.
+The separately documented [restricted annular mechanics](ANNULAR-MECHANICS.md)
+adds one synthetic stretching/bending minimization within circular annuli.
+Its six free coordinates and contact domain do not turn this geometric
+benchmark into a general shell model or calibrated yarn experiment.
 
 For the hyperbolic **polar** fixtures, the code deliberately places points at
 `(u cos(theta),u sin(theta),0)`. That flat placement is distorted. Its nonunit
