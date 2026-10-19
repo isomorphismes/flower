@@ -72,6 +72,10 @@ static void camera_move(Camera3D *camera,float rightward,float forwardward,float
     FlowerCamera state=camera_state(*camera); flower_camera_move(&state,rightward,forwardward,upward); camera_store(camera,state);
 }
 static FlowerHit pick(Vector2 point,Camera3D camera) {
+#ifdef FLOWER_HAVE_SUBPIXEL
+    if (flower_construction_pane_contains(material_diagram.enabled,GetScreenWidth(),point.x,point.y))
+        return (FlowerHit){0};
+#endif
     Ray ray=GetScreenToWorldRay(point,camera);
     return flower_mesh_pick(&display,(FlowerPoint){ray.position.x,ray.position.y,ray.position.z},
                       (FlowerPoint){ray.direction.x,ray.direction.y,ray.direction.z});
@@ -134,6 +138,8 @@ static int role_at(Vector2 point) {
 #ifdef FLOWER_HAVE_SUBPIXEL
     if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-290,12,130,56})) return SAMPLING;
     if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-440,12,130,56})) return DIAGRAM;
+    if (flower_construction_pane_contains(material_diagram.enabled,GetScreenWidth(),point.x,point.y))
+        return IGNORE;
 #endif
     for (int role=LOOK;role<=ROLL_RIGHT;role++) if (CheckCollisionPointRec(point,pad(role))) return role;
     return GROW;

@@ -32,6 +32,11 @@ this Flower consumer.
   NET ON/OFF and sampling model controls (desktop P and O, respectively).
   Existing hold, release, Lua and picking state never enter this display
   code. Surface lighting / intrinsic rings from Flower PR #3 remain separate.
+- Pointer ownership repair: the visible opaque pane and its caption block
+  underlying 3D growth on Android and desktop. A shared display-neutral bounds
+  calculation supplies the input exclusion and host boundary controls. Toggling
+  the pane off restores the underlying grow region; physical input remains
+  separately unverified.
 - When disabled, no diagram allocation, raster sampling, texture update or
   extra per-frame drawing is performed (an O(1) enabled/dirty guard only).
   When shown or when the sampling mode changes, the diagram is rebuilt and

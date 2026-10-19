@@ -16,6 +16,13 @@ static double separation(FlowerDiagramPoint p, FlowerDiagramPoint q) {
     return hypot(p.x - q.x, p.y - q.y);
 }
 int main(void) {
+    CHECK(flower_construction_pane_contains(true,576,366,88));
+    CHECK(flower_construction_pane_contains(true,576,559,304));
+    CHECK(!flower_construction_pane_contains(false,576,400,100));
+    CHECK(!flower_construction_pane_contains(true,576,364,100));
+    CHECK(!flower_construction_pane_contains(true,576,400,305));
+    CHECK(flower_construction_pane_contains(true,100,12,100));
+    CHECK(!flower_construction_pane_contains(true,576,NAN,100));
     flower_init(&flower);
     before = flower;
     CHECK(flower_material_round(&flower.net, 8, 96, 96, 62, &round_a));
