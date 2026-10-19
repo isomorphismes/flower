@@ -1,0 +1,6 @@
+nonempty	BUILD-TOOLCHAIN-MANIFEST	ci/regina-build-toolchain.tsv
+tsv_header	BUILD-TOOLCHAIN-HEADER	ci/regina-build-toolchain.tsv	build_id,target,toolchain,ick_revision,ick_status,ick_evidence
+build_toolchains_allowed	BUILD-TOOLCHAIN-CHOICE	ci/regina-build-toolchain.tsv
+build_toolchains_revision	BUILD-TOOLCHAIN-ICK-REVISION	ci/regina-build-toolchain.tsv
+build_toolchains_evidence	BUILD-TOOLCHAIN-ICK-EVIDENCE	ci/regina-build-toolchain.tsv
+build_toolchains_ndk_gap	BUILD-TOOLCHAIN-ICK-GAP	ci/regina-build-toolchain.tsv

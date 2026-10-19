@@ -1,0 +1,7 @@
+module NetTopology
+
+triangle_count : Number → Number
+triangle_count quadrilateral_count = 2 × quadrilateral_count
+
+main : IO ()
+main = if triangle_count 1024 ≟ 2048 then putChar 'Y' else putChar 'N'
