@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: isomorphisms/ai-ci
-          ref: dac5e2251574079578560eb30fd0f241d8bc9005
+          ref: 85955857fdecb85e069695f01a23edf3bac9e11e
           path: oracle
           persist-credentials: false
       - name: Check out the checked Ithon frontend
