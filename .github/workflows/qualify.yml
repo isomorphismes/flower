@@ -1,0 +1,85 @@
+name: Flower source qualification
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  core-regressions:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Configure core and real Lua qualification
+        run: cmake -S . -B build/core -DFLOWER_CORE_ONLY=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Compile core and Lua tests
+        run: cmake --build build/core --parallel 2
+      - name: Execute regressions and architectural claims with NDEBUG
+        run: ctest --test-dir build/core --output-on-failure -V
+      - name: Require rejecting mutants
+        run: python3 scripts/mutation_test.py
+        env:
+          FLOWER_LUA_SOURCE: ${{ github.workspace }}/build/core/_deps/lua-src
+      - name: Address and undefined-behavior sanitizers
+        run: cmake -S . -B build/sanitized -DFLOWER_CORE_ONLY=ON -DCMAKE_C_FLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer"
+      - name: Compile sanitizer qualification
+        run: cmake --build build/sanitized --parallel 2
+      - name: Execute sanitizer qualification
+        run: ctest --test-dir build/sanitized --output-on-failure -V
+  ndk-armeabi-v7a:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Source-pinned opt-in consumer; this job packages an actual diagram APK.
+      - name: Checkout corrected Subpixel native source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: isomorphisms/rough.framebuffer
+          ref: efff5fbe71d8722d713282c478dbdb52fa280f9b
+          path: rough-subpixel
+          persist-credentials: false
+      - name: Verify the exact consumed Subpixel checkout
+        run: |
+          set -euo pipefail
+          test "$(git -C rough-subpixel rev-parse HEAD)" = efff5fbe71d8722d713282c478dbdb52fa280f9b
+          test -f rough-subpixel/src/subpixel_framebuffer.h
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      # Use the runner's installed SDK, as in Crystal's successful build. The
+      # previous setup-android action failed before Flower compilation started.
+      - name: Install Android components
+        run: '"$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "ndk;26.3.11579264"'
+      - name: Configure real raylib and Lua Android host
+        run: cmake -S . -B build/android -G Ninja -DCMAKE_TOOLCHAIN_FILE="$ANDROID_SDK_ROOT/ndk/26.3.11579264/build/cmake/android.toolchain.cmake" -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=24 -DCMAKE_BUILD_TYPE=Release -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$GITHUB_WORKSPACE/app/src/main/jniLibs/armeabi-v7a" -DFLOWER_SUBPIXEL_SOURCE="$GITHUB_WORKSPACE/rough-subpixel" -DFLOWER_SUBPIXEL_EXPECTED_SHA=efff5fbe71d8722d713282c478dbdb52fa280f9b
+      - name: Compile and link real native Android target
+        run: cmake --build build/android --parallel 2
+      - name: Inspect native ABI and symbols
+        run: '"$ANDROID_SDK_ROOT/ndk/26.3.11579264/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h -s app/src/main/jniLibs/armeabi-v7a/libflower.so'
+      - name: Package signed pinned-subpixel Flower test APK
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Verify APK signature
+        run: '"$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk'
+      - name: Inspect packaged files
+        run: unzip -l app/build/outputs/apk/debug/app-debug.apk
+      - name: Record APK digest
+        run: sha256sum app/build/outputs/apk/debug/app-debug.apk | tee app/build/outputs/apk/debug/SHA256SUMS.txt
+      - name: Record exact source
+        run: git rev-parse HEAD | tee app/build/outputs/apk/debug/SOURCE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flower-miro-armeabi-v7a-test
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/SHA256SUMS.txt
+            app/build/outputs/apk/debug/SOURCE.txt
+            app/src/main/jniLibs/armeabi-v7a/libflower.so
+          if-no-files-found: error
