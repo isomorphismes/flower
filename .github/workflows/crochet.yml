@@ -1,0 +1,112 @@
+name: Crochet material and independent geometry acceptance
+
+on:
+  push:
+    branches: [sun/crochet-material]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  flower:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ITHON_PYTHON: ${{ github.workspace }}/fp/foreign-runtime/bin/python
+      ITHON_CHECK_RECEIPT: ${{ github.workspace }}/fp/build/frontend-last.json
+    steps:
+      - name: Check out pinned FP envelope
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: isomorphisms/flexible-pipes
+          ref: 43e0c154204dc529e11db8b8f9461105bd09099a
+          path: fp
+          persist-credentials: false
+      - name: Check out exact source head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: fp/source
+          persist-credentials: false
+      - name: Check out independent AI-CI
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: isomorphisms/ai-ci
+          ref: 6f20703ef8f065d3c99dd5398a09ee67c3b19a98
+          path: fp/oracle
+          persist-credentials: false
+      - name: Check out Kitchen
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: isomorphisms/kitchen
+          ref: a475a0ef878290543254ead57c977de19391b4b5
+          path: fp/kitchen
+          persist-credentials: false
+      - name: Check out Cat Food runtime owner
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: isomorphisms/catfood
+          ref: 52bf1c1273acadb210fe76c3398cfc01564e67da
+          path: fp/catfood
+          persist-credentials: false
+      - name: Check out checked Ithon frontend
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: dilapidated-shed/ithon
+          ref: d6e83969f82512e920fb17b44326cb54f31d015c
+          path: fp/ithon
+          persist-credentials: false
+      - name: Check out owned Ike orchestrator
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: dilapidated-shed/ike
+          ref: a92fe68bf8aad8dfcfe9f7a7abd84e07290f7fe0
+          path: fp/ike
+          persist-credentials: false
+      - name: Open source-bound FP job
+        run: python3 fp/scripts/run-pipeline geometry-followups-open
+      - name: Acquire and qualify ICK
+        id: ick
+        uses: isomorphisms/ai-ci/ick-host@4ea071a96239f3a29ca6d98454feb59947d87cfe
+      - name: Run crochet and material geometry through FP and Kitchen
+        env:
+          IKE_RECIPE_RUNNER: ${{ github.workspace }}/fp/profile/bin/grease
+          IKE_IKEFILE_IDENTITY: sha256:ec9726a4a26bf75b6a8441ab70cf61a17e65b6c3dbe903f4a090b3193e8c040b
+          IKE_RECEIPT: ${{ github.workspace }}/fp/build/ike-accept.tsv
+          FLOWER_WORKSPACE: ${{ github.workspace }}/fp
+          FLOWER_GREASE: ${{ github.workspace }}/fp/profile/bin/grease
+          FLOWER_KITCHEN_RECIPE: ${{ github.workspace }}/fp/kitchen/tasks/geometry-acceptance/1.grease
+          FLOWER_ITHON: ${{ github.workspace }}/fp/ithon/ithon
+          FLOWER_STITCH_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-stitch/accept.pi
+          FLOWER_METRIC_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-metric/accept.pi
+          FLOWER_TOPOLOGY_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-metric/topology.pi
+          FLOWER_REALIZATION_CHECKER: ${{ github.workspace }}/fp/oracle/geometry/flower-metric/realization.pi
+        run: >-
+          python3 fp/scripts/run-pipeline flower-followup-acceptance
+          --param compiler=${{ steps.ick.outputs.compiler }}
+          --param workspace=${{ github.workspace }}/fp
+          --param ithon=${{ github.workspace }}/fp/ithon/ithon
+          --param grease=${{ github.workspace }}/fp/profile/bin/grease
+          --param kitchen_recipe=${{ github.workspace }}/fp/kitchen/tasks/geometry-acceptance/1.grease
+          --param stitch_checker=${{ github.workspace }}/fp/oracle/geometry/flower-stitch/accept.pi
+          --param metric_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/accept.pi
+          --param topology_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/topology.pi
+          --param realization_checker=${{ github.workspace }}/fp/oracle/geometry/flower-metric/realization.pi
+          --param ikefile_identity=sha256:ec9726a4a26bf75b6a8441ab70cf61a17e65b6c3dbe903f4a090b3193e8c040b
+      - name: Retain original evidence and printable construction
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flower-followup-evidence
+          path: |
+            fp/.flexible-pipes/runs/
+            fp/build/
+            fp/profile/grease.tsv
+            fp/provision/host.txt
+            fp/provision/grease-metadata/
+            fp/provision/grease-owner-run/
+            fp/provision/grease-owner-source/
+            fp/provision/grease-smoke/
+          if-no-files-found: error

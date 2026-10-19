@@ -1,0 +1,10 @@
+module StitchCount
+
+count_after_explicit_increases : Number → Number → Number
+count_after_explicit_increases parent_count additional_children =
+  parent_count + additional_children
+
+main : IO ()
+main = if count_after_explicit_increases 8 4 ≟ 12
+          then putChar 'Y'
+          else putChar 'N'
