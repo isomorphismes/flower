@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: isomorphisms/catfood
-          ref: 52bf1c1273acadb210fe76c3398cfc01564e67da
+          ref: da0b785385a13683b06737a9521fe1e5c88314d5
           path: fp/catfood
           persist-credentials: false
       - name: Check out checked Ithon frontend
