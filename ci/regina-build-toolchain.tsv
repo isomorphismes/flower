@@ -1,0 +1,3 @@
+build_id	target	toolchain	ick_revision	ick_status	ick_evidence
+flower-retained-net-export	linux-x86_64	ick	c61e448251744a2f40ad743ebef1a027bdcd2f9d	qualified	https://github.com/isomorphisms/ai-ci/tree/4ea071a96239f3a29ca6d98454feb59947d87cfe/ick-host
+flower-regina-build-verifier	linux-x86_64	ick	c61e448251744a2f40ad743ebef1a027bdcd2f9d	qualified	https://github.com/isomorphisms/ai-ci/tree/4ea071a96239f3a29ca6d98454feb59947d87cfe/ick-host

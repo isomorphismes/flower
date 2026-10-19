@@ -55,6 +55,12 @@ jobs:
         run: build/regina-net/export-net normal build/regina-net/normal-1.obj build/regina-net/normal-2.obj
       - name: Export coincident folded geometry without welding material IDs
         run: build/regina-net/export-net folded build/regina-net/folded-1.obj build/regina-net/folded-2.obj
+      - name: Compile the shared build-contract verifier through ICK
+        run: >-
+          "${{ steps.ick.outputs.compiler }}" -fno-link-libatomic -std=c17
+          -O2 -Wall -Wextra -Werror oracle/src/aici.c -o build/regina-net/aici
+      - name: Check the explicit compile stages
+        run: build/regina-net/aici verify ci/regina-build-toolchain.contract.tsv .
       - name: Execute Regina disk, annulus, torus, Mobius and seven rejection controls
         run: env ITHON_PYTHON=${{ github.workspace }}/build/regina-runtime/bin/python ithon/ithon oracle/geometry/flower-metric/topology.pi --self-test
       - name: Check normal density one with real Regina
