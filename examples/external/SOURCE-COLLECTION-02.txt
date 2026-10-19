@@ -1,0 +1,8 @@
+GEOMETRY-EXTERNAL-SOURCES-02
+User continuation: Add sources.
+
+Source task originated in the existing Flexible Pipes checkout b7f944b1391a8a2ea96ee07f6b9c0431311842b0. Local geometry-external-sources-open executed the envelope hash and host-identity stages successfully on 14 October 2026. Envelope SHA256: 2c2774cfa2f797f7cc4c124aff6622d1529875596731b9bdaf966ec32f0c61cf. This open-stage result is not qualified publication or independent acceptance.
+
+Scope: preserve the earlier 33 code examples, add 44 official Curved Spaces core/utility code files and three original Stitch Meshing core code files; bind 15 complete source repository roots as immutable Git submodules. Preserve archive digests, file identities, original authors and notices.
+
+Source retrieval and exact-byte verification are distinct from compilation, running the engines, algorithm validation or physical/device behavior. Independent isomorphisms/ai-ci acceptance: NOT_RUN. Draft PRs remain unmerged; no runtime adoption or release is authorized.

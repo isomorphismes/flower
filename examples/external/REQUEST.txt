@@ -1,0 +1,10 @@
+GEOMETRY-EXTERNAL-EXAMPLES-01 — source-code continuation
+
+Original user request: Add all of those external geometry examples to flower, crystal, and mostow.
+Correction on 14 October 2026: What about explicit code.
+
+The earlier reference-only delivery was incomplete for this corrected scope. This continuation copies selected original source files and license/provenance records into all three existing documentation PRs. The user's correction supersedes the earlier envelope's no-vendoring scope.
+
+Existing FP authoring origin: b7f944b1391a8a2ea96ee07f6b9c0431311842b0; earlier envelope SHA256 b3445713e9f17803cf7f12d68d048a6a286aaa022c1277e8a331cc1345caee30. No fresh FP execution receipt is claimed: the execution environment is unavailable. Independent isomorphisms/ai-ci acceptance remains NOT_RUN. Keep the PRs draft; no merge or runtime adoption is authorized.
+
+Evidence to verify: copied source files have the same Git blob identities as their pinned origins. Missing source releases or redistribution notices remain recorded gaps rather than invented code.
