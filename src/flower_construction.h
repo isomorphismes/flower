@@ -7,7 +7,7 @@
  * exclusively to FlowerNet; neither FlowerSkin nor FlowerMesh is consulted.
  * Pixel coordinates are an explicit chart chosen by the caller, NOT world XY. */
 typedef struct { double x, y; } FlowerDiagramPoint;
-enum { FLOWER_DIAGRAM_SIDE = 192, FLOWER_DIAGRAM_TOP = 88 };
+enum { FLOWER_DIAGRAM_SIDE = 192, FLOWER_DIAGRAM_TOP = 142 };
 /* The opaque pane and its label own these screen coordinates while visible.
  * Its chart must not pass a pointer through to hidden 3D growth. */
 bool flower_construction_pane_contains(bool visible, int viewport_width,

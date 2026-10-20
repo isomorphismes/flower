@@ -13,7 +13,7 @@ bool flower_construction_pane_contains(bool visible, int viewport_width,
     if (left < 12) left = 12;
     return pointer_x >= left - 1 && pointer_x <= left + FLOWER_DIAGRAM_SIDE + 1 &&
         pointer_y >= FLOWER_DIAGRAM_TOP - 1 &&
-        pointer_y <= FLOWER_DIAGRAM_TOP + FLOWER_DIAGRAM_SIDE + 24;
+        pointer_y <= FLOWER_DIAGRAM_TOP + FLOWER_DIAGRAM_SIDE + 50;
 }
 
 static bool valid_net(const FlowerNet *net) {
