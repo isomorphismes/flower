@@ -20,7 +20,47 @@ static int display_density=1;
 static bool platform_active=true;
 #ifdef FLOWER_HAVE_SUBPIXEL
 static FlowerDiagram material_diagram;
+static bool show_wireframe=false;
+static int edge_sampling=0;
+static void cycle_edge_sampling(void) {
+    if (edge_sampling==0) edge_sampling=FLOWER_CURVE_3X3;
+    else if (edge_sampling==FLOWER_CURVE_3X3) edge_sampling=FLOWER_CURVE_5X5;
+    else edge_sampling=0;
+    if (edge_sampling!=0 && material_diagram.model!=edge_sampling)
+        flower_diagram_cycle_sampling(&material_diagram);
+}
+static void draw_wireframe(const FlowerMesh *surface, Camera3D camera) {
+    /* Depth-tested display triangles, NOT additional material edges. */
+    if (!show_wireframe || !surface) return;
+    rlSetLineWidth(1.0f);
+    rlBegin(RL_LINES);
+    rlColor4ub(19,25,36,190);
+    for (int i=0;i<surface->triangle_count;i++) {
+        Vector3 v[3];
+        for (int k=0;k<3;k++) {
+            FlowerPoint p=surface->position[3*i+k];
+            float dx=camera.position.x-p.x,dy=camera.position.y-p.y,
+                  dz=camera.position.z-p.z;
+            float length=sqrtf(dx*dx+dy*dy+dz*dz);
+            float delta=length>1e-6f?0.004f/length:0;
+            v[k]=(Vector3){p.x+dx*delta,p.y+dy*delta,p.z+dz*delta};
+        }
+        for (int k=0;k<3;k++) {
+            Vector3 a=v[k],b=v[(k+1)%3];
+            rlVertex3f(a.x,a.y,a.z);
+            rlVertex3f(b.x,b.y,b.z);
+        }
+    }
+    rlEnd();
+    rlSetLineWidth(1.0f);
+}
 #endif
+/* Four equally sized controls stay below the status/instruction row. */
+static Rectangle top_button(int index) {
+    float gap=8.0f,margin=10.0f;
+    float width=((float)GetScreenWidth()-2*margin-3*gap)/4.0f;
+    return (Rectangle){margin+index*(width+gap),72.0f,width,50.0f};
+}
 #if defined(PLATFORM_ANDROID)
 #include <android_native_app_glue.h>
 /* Export present at the pinned raylib 5.5 commit; not assumed across versions. */
@@ -122,24 +162,25 @@ static Mesh mesh_create(void) {
 #if defined(PLATFORM_ANDROID)
 enum { UNUSED,GROW,LOOK,MOVE,LIFT,LOWER,ROLL_LEFT,ROLL_RIGHT,IGNORE,DENSITY
 #ifdef FLOWER_HAVE_SUBPIXEL
-       ,DIAGRAM,SAMPLING
+       ,DIAGRAM,SAMPLING,WIRE,PANE
 #endif
 };
 typedef struct { int id,role; bool seen; Vector2 start,last; } Contact;
 static Contact contacts[8];
 static Rectangle pad(int role) {
     float width=(float)GetScreenWidth(),height=(float)GetScreenHeight();
-    if (role==MOVE) return (Rectangle){0,height*0.75f,width*0.41f,height*0.25f};
-    if (role==LOOK) return (Rectangle){width*0.59f,height*0.75f,width*0.41f,height*0.25f};
-    return (Rectangle){width*0.42f,height*(0.75f+0.0625f*(role-LIFT)),width*0.16f,height*0.06f};
+    if (role==MOVE) return (Rectangle){0,height*0.82f,width*0.41f,height*0.16f};
+    if (role==LOOK) return (Rectangle){width*0.59f,height*0.82f,width*0.41f,height*0.16f};
+    return (Rectangle){width*0.42f,height*(0.82f+0.04f*(role-LIFT)),width*0.16f,height*0.038f};
 }
 static int role_at(Vector2 point) {
-    if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-140,12,130,56})) return DENSITY;
+    if (CheckCollisionPointRec(point,top_button(2))) return DENSITY;
 #ifdef FLOWER_HAVE_SUBPIXEL
-    if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-290,12,130,56})) return SAMPLING;
-    if (CheckCollisionPointRec(point,(Rectangle){GetScreenWidth()-440,12,130,56})) return DIAGRAM;
+    if (CheckCollisionPointRec(point,top_button(1))) return SAMPLING;
+    if (CheckCollisionPointRec(point,top_button(0))) return DIAGRAM;
+    if (CheckCollisionPointRec(point,top_button(3))) return WIRE;
     if (flower_construction_pane_contains(material_diagram.enabled,GetScreenWidth(),point.x,point.y))
-        return IGNORE;
+        return PANE;
 #endif
     for (int role=LOOK;role<=ROLL_RIGHT;role++) if (CheckCollisionPointRec(point,pad(role))) return role;
     return GROW;
@@ -163,11 +204,16 @@ static bool touch_frame(Camera3D *camera,float camera_seconds,double growth_seco
             if (contacts[slot].role==DENSITY) display_density=3-display_density;
 #ifdef FLOWER_HAVE_SUBPIXEL
             if (contacts[slot].role==DIAGRAM) flower_diagram_toggle(&material_diagram);
-            if (contacts[slot].role==SAMPLING) flower_diagram_cycle_sampling(&material_diagram);
+            if (contacts[slot].role==SAMPLING) cycle_edge_sampling();
+            if (contacts[slot].role==WIRE) show_wireframe=!show_wireframe;
 #endif
             if (contacts[slot].role==GROW && !flower_hold_begin(&hold,id,true,true,pick(point,*camera))) contacts[slot].role=IGNORE;
         }
         Contact *contact=&contacts[slot]; contact->seen=true;
+#ifdef FLOWER_HAVE_SUBPIXEL
+        if (contact->role==PANE)
+            flower_diagram_select(&material_diagram,&flower,GetScreenWidth(),point.x,point.y);
+#endif
         if (contact->role==LOOK) camera_turn(camera,-(point.x-contact->last.x)*0.004f,-(point.y-contact->last.y)*0.004f,0);
         if (contact->role==MOVE) camera_move(camera,clamp((point.x-contact->start.x)/70)*camera_seconds,
                                             -clamp((point.y-contact->start.y)/70)*camera_seconds,0);
@@ -237,13 +283,21 @@ int main(int argc,char **argv) {
         }
         bool down=IsMouseButtonDown(MOUSE_BUTTON_LEFT), pressed=IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
         FlowerHit hit=pick(GetMousePosition(),camera);
-        bool density_control=CheckCollisionPointRec(GetMousePosition(),(Rectangle){GetScreenWidth()-140,12,130,56});
+        bool density_control=CheckCollisionPointRec(GetMousePosition(),top_button(2));
 #ifdef FLOWER_HAVE_SUBPIXEL
-        bool diagram_control=CheckCollisionPointRec(GetMousePosition(),(Rectangle){GetScreenWidth()-440,12,130,56});
-        bool sampling_control=CheckCollisionPointRec(GetMousePosition(),(Rectangle){GetScreenWidth()-290,12,130,56});
-        if (density_control || diagram_control || sampling_control) hit=(FlowerHit){0};
+        bool diagram_control=CheckCollisionPointRec(GetMousePosition(),top_button(0));
+        bool sampling_control=CheckCollisionPointRec(GetMousePosition(),top_button(1));
+        bool wire_control=CheckCollisionPointRec(GetMousePosition(),top_button(3));
+        bool pane_control=flower_construction_pane_contains(material_diagram.enabled,
+                      GetScreenWidth(),GetMousePosition().x,GetMousePosition().y);
+        if (density_control || diagram_control || sampling_control ||
+            wire_control || pane_control) hit=(FlowerHit){0};
         if (pressed && focused && diagram_control) flower_diagram_toggle(&material_diagram);
-        if (pressed && focused && sampling_control) flower_diagram_cycle_sampling(&material_diagram);
+        if (pressed && focused && sampling_control) cycle_edge_sampling();
+        if (pressed && focused && wire_control) show_wireframe=!show_wireframe;
+        if (down && focused && pane_control)
+            flower_diagram_select(&material_diagram,&flower,GetScreenWidth(),
+                                  GetMousePosition().x,GetMousePosition().y);
 #else
         if (density_control) hit=(FlowerHit){0};
 #endif
@@ -254,13 +308,14 @@ int main(int argc,char **argv) {
         if (IsKeyPressed(KEY_T)) display_density=3-display_density;
 #ifdef FLOWER_HAVE_SUBPIXEL
         if (focused && IsKeyPressed(KEY_P)) flower_diagram_toggle(&material_diagram);
-        if (focused && IsKeyPressed(KEY_O)) flower_diagram_cycle_sampling(&material_diagram);
+        if (focused && IsKeyPressed(KEY_O)) cycle_edge_sampling();
+        if (focused && IsKeyPressed(KEY_G)) show_wireframe=!show_wireframe;
 #endif
 #endif
 #ifdef FLOWER_HAVE_SUBPIXEL
         /* Zero allocations or samples when the optional diagram is disabled.
          * A chart failure disables only the chart, never the flower simulation. */
-        if (!flower_diagram_update(&material_diagram,&flower.net)) {
+        if (!flower_diagram_update(&material_diagram,&flower)) {
             TraceLog(LOG_ERROR,"Optional flat material diagram unavailable");
             flower_diagram_toggle(&material_diagram);
         }
@@ -270,28 +325,51 @@ int main(int argc,char **argv) {
         BeginDrawing(); ClearBackground((Color){14,16,22,255});
         BeginMode3D(camera); rlDisableBackfaceCulling();
         DrawMesh(mesh,material,(Matrix){.m0=1,.m5=1,.m10=1,.m15=1});
+#ifdef FLOWER_HAVE_SUBPIXEL
+        draw_wireframe(&display,camera);
+        if (material_diagram.enabled && material_diagram.selected_node>=0 &&
+            material_diagram.selected_node<flower.net.node_count) {
+            FlowerPoint p=flower.skin.position[material_diagram.selected_node];
+            DrawSphere((Vector3){p.x,p.y,p.z},0.035f,YELLOW);
+        }
+#endif
         rlEnableBackfaceCulling(); EndMode3D();
 #ifdef FLOWER_HAVE_SUBPIXEL
-        /* Separate opaque 2D pane, never lines through an occluded 3D fold. */
-        flower_diagram_draw(&material_diagram);
+        flower_diagram_draw(&material_diagram,&flower);
 #endif
-        DrawText(changed?"GROWING":"PAUSED",18,18,24,LIGHTGRAY);
-        DrawText("Hold a flower region. Release to freeze.",18,48,16,LIGHTGRAY);
-        DrawRectangle(GetScreenWidth()-140,12,130,56,(Color){29,32,40,230});
-        DrawText(display_density==1?"MESH 1x":"MESH 2x",GetScreenWidth()-132,30,18,LIGHTGRAY);
+        /* UI never overlaps itself, including on the narrower A1 viewport. */
+        DrawRectangle(0,0,GetScreenWidth(),130,(Color){18,21,28,244});
+        DrawText(changed?"GROWING":"PAUSED",12,10,24,LIGHTGRAY);
+        DrawText("Hold flower to grow. Release to freeze.",12,43,16,LIGHTGRAY);
+        for (int i=0;i<4;i++) {
+            const char *label=NULL;
+            bool active=false;
+            if (i==2) label=display_density==1?"MESH 1x":"MESH 2x";
 #ifdef FLOWER_HAVE_SUBPIXEL
-        DrawRectangle(GetScreenWidth()-440,12,130,56,(Color){29,32,40,230});
-        DrawText(material_diagram.enabled?"NET ON":"NET OFF",GetScreenWidth()-432,30,18,LIGHTGRAY);
-        DrawRectangle(GetScreenWidth()-290,12,130,56,(Color){29,32,40,230});
-        DrawText(material_diagram.model==FLOWER_CURVE_3X3?"CURVE 3x3":"CURVE 5x5",
-                 GetScreenWidth()-282,30,18,LIGHTGRAY);
+            if (i==0) {
+                label=!material_diagram.enabled?"NET OFF":
+                   material_diagram.view==FLOWER_INSPECTION_GROWTH?"NET GROW":"NET STR";
+                active=material_diagram.enabled;
+            }
+            if (i==1) {
+                label=edge_sampling==0?"EDGE OFF":
+                      edge_sampling==FLOWER_CURVE_3X3?"EDGE 3x3":"EDGE 5x5";
+                active=edge_sampling!=0;
+            }
+            if (i==3) {label=show_wireframe?"WIRE ON":"WIRE OFF";active=show_wireframe;}
 #endif
+            if (!label) continue;
+            Rectangle rect=top_button(i);
+            DrawRectangleRec(rect,active?(Color){43,53,65,245}:(Color){29,32,40,238});
+            DrawRectangleLinesEx(rect,1,(Color){100,103,112,255});
+            DrawText(label,(int)rect.x+7,(int)rect.y+16,18,LIGHTGRAY);
+        }
 #if defined(PLATFORM_ANDROID)
         draw_touch_controls();
 #else
         DrawText("WASD: fly  Q/E: down/up  right drag: look  Z/X: roll  T: mesh",18,GetScreenHeight()-28,15,LIGHTGRAY);
 #ifdef FLOWER_HAVE_SUBPIXEL
-        DrawText("P: flat NET diagram    O: 3x3 / 5x5",18,GetScreenHeight()-48,15,LIGHTGRAY);
+        DrawText("P: Net views  O: edge mode  G: display wires",18,GetScreenHeight()-48,15,LIGHTGRAY);
 #endif
 #endif
         EndDrawing();
