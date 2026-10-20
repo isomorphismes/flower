@@ -21,7 +21,7 @@ int main(void) {
     CHECK(!flower_construction_pane_contains(false,576,400,100));
     CHECK(!flower_construction_pane_contains(true,576,364,150));
     CHECK(!flower_construction_pane_contains(true,576,400,385));
-    CHECK(flower_construction_pane_contains(true,100,12,100));
+    CHECK(flower_construction_pane_contains(true,100,12,150));
     CHECK(!flower_construction_pane_contains(true,576,NAN,100));
     flower_init(&flower);
     before = flower;

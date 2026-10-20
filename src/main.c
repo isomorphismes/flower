@@ -10,6 +10,7 @@
 #include <string.h>
 #ifdef FLOWER_HAVE_SUBPIXEL
 #include "flower_diagram.h"
+#include "flower_edge.h"
 #endif
 
 static Flower flower;
@@ -22,6 +23,7 @@ static bool platform_active=true;
 static FlowerDiagram material_diagram;
 static bool show_wireframe=false;
 static int edge_sampling=0;
+static FlowerEdge edge_renderer;
 static void cycle_edge_sampling(void) {
     if (edge_sampling==0) edge_sampling=FLOWER_CURVE_3X3;
     else if (edge_sampling==FLOWER_CURVE_3X3) edge_sampling=FLOWER_CURVE_5X5;
@@ -55,6 +57,20 @@ static void draw_wireframe(const FlowerMesh *surface, Camera3D camera) {
     rlSetLineWidth(1.0f);
 }
 #endif
+/* One scene path both with and without the optional screen-space filter. */
+static void draw_flower_scene(Camera3D camera,Mesh mesh,Material material) {
+    BeginMode3D(camera); rlDisableBackfaceCulling();
+    DrawMesh(mesh,material,(Matrix){.m0=1,.m5=1,.m10=1,.m15=1});
+#ifdef FLOWER_HAVE_SUBPIXEL
+    draw_wireframe(&display,camera);
+    if (material_diagram.enabled && material_diagram.selected_node>=0 &&
+        material_diagram.selected_node<flower.net.node_count) {
+        FlowerPoint p=flower.skin.position[material_diagram.selected_node];
+        DrawSphere((Vector3){p.x,p.y,p.z},0.035f,YELLOW);
+    }
+#endif
+    rlEnableBackfaceCulling(); EndMode3D();
+}
 /* Four equally sized controls stay below the status/instruction row. */
 static Rectangle top_button(int index) {
     float gap=8.0f,margin=10.0f;
@@ -322,18 +338,26 @@ int main(int argc,char **argv) {
 #endif
         if (display.density!=display_density) { UnloadMesh(mesh); mesh=mesh_create(); }
         else if (changed) mesh_refresh(&mesh,true);
-        BeginDrawing(); ClearBackground((Color){14,16,22,255});
-        BeginMode3D(camera); rlDisableBackfaceCulling();
-        DrawMesh(mesh,material,(Matrix){.m0=1,.m5=1,.m10=1,.m15=1});
+        bool filtering=false;
 #ifdef FLOWER_HAVE_SUBPIXEL
-        draw_wireframe(&display,camera);
-        if (material_diagram.enabled && material_diagram.selected_node>=0 &&
-            material_diagram.selected_node<flower.net.node_count) {
-            FlowerPoint p=flower.skin.position[material_diagram.selected_node];
-            DrawSphere((Vector3){p.x,p.y,p.z},0.035f,YELLOW);
-        }
+        if (edge_sampling!=0)
+            filtering=flower_edge_prepare(&edge_renderer,GetScreenWidth(),GetScreenHeight());
 #endif
-        rlEnableBackfaceCulling(); EndMode3D();
+        BeginDrawing();
+#ifdef FLOWER_HAVE_SUBPIXEL
+        if (filtering) {
+            BeginTextureMode(edge_renderer.target);
+            ClearBackground((Color){14,16,22,255});
+            draw_flower_scene(camera,mesh,material);
+            EndTextureMode();
+            ClearBackground((Color){14,16,22,255});
+            flower_edge_draw(&edge_renderer,edge_sampling,GetScreenWidth(),GetScreenHeight());
+        } else
+#endif
+        {
+            ClearBackground((Color){14,16,22,255});
+            draw_flower_scene(camera,mesh,material);
+        }
 #ifdef FLOWER_HAVE_SUBPIXEL
         flower_diagram_draw(&material_diagram,&flower);
 #endif
@@ -352,7 +376,7 @@ int main(int argc,char **argv) {
                 active=material_diagram.enabled;
             }
             if (i==1) {
-                label=edge_sampling==0?"EDGE OFF":
+                label=edge_renderer.failed?"EDGE ERR":edge_sampling==0?"EDGE OFF":
                       edge_sampling==FLOWER_CURVE_3X3?"EDGE 3x3":"EDGE 5x5";
                 active=edge_sampling!=0;
             }
@@ -376,6 +400,7 @@ int main(int argc,char **argv) {
     }
 #ifdef FLOWER_HAVE_SUBPIXEL
     flower_diagram_free(&material_diagram);
+    flower_edge_free(&edge_renderer);
 #endif
     flower_mesh_free(&display); UnloadMaterial(material); UnloadMesh(mesh); CloseWindow(); return 0;
 }
