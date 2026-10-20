@@ -332,8 +332,8 @@ int main(int argc,char **argv) {
         /* Zero allocations or samples when the optional diagram is disabled.
          * A chart failure disables only the chart, never the flower simulation. */
         if (!flower_diagram_update(&material_diagram,&flower)) {
-            TraceLog(LOG_ERROR,"Optional flat material diagram unavailable");
-            flower_diagram_toggle(&material_diagram);
+            TraceLog(LOG_ERROR,"Optional material diagram unavailable");
+            flower_diagram_free(&material_diagram);
         }
 #endif
         if (display.density!=display_density) { UnloadMesh(mesh); mesh=mesh_create(); }

@@ -1,4 +1,5 @@
 #include "flower_edge.h"
+#include <stddef.h>
 
 /* At full scene resolution this is a SCREEN-SPACE silhouette coverage
  * comparison, not super-sampled 3D geometry. Background is the actual
