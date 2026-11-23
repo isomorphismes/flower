@@ -5,6 +5,7 @@
 #include "flower_diagram.h"
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -128,17 +129,39 @@ void flower_diagram_draw(const FlowerDiagram *diagram, const Flower *flower) {
     DrawTexture(diagram->texture,x,y,WHITE);
     DrawRectangleLines(x-1,y-1,DIAGRAM_SIDE+2,DIAGRAM_SIDE+2,GRAY);
     DrawRectangle(x,y+DIAGRAM_SIDE+2,DIAGRAM_SIDE,45,(Color){29,32,40,245});
-    DrawText(diagram->view==FLOWER_INSPECTION_GROWTH?
-             "NET: intrinsic growth":"NET: reference stretch",
-             x+3,y+DIAGRAM_SIDE+5,13,LIGHTGRAY);
-    if (diagram->selected_node>=0 &&
-        diagram->selected_node<flower->net.node_count) {
+    bool selected=diagram->selected_node>=0 && diagram->selected_node<flower->net.node_count;
+    bool show_metric=selected && diagram->view==FLOWER_INSPECTION_STRETCH;
+    if (!show_metric)
+        DrawText(diagram->view==FLOWER_INSPECTION_GROWTH?
+                 "NET: intrinsic growth":"NET: reference stretch",
+                 x+3,y+DIAGRAM_SIDE+5,13,LIGHTGRAY);
+    if (selected) {
         int id=diagram->selected_node, ring=flower->net.ring[id],
             slice=flower->net.slice[id];
         double radius=20.0+68.0*ring/flower->net.rings;
         double theta=TAU*slice/flower->net.slices;
         DrawCircle(x+96+(int)lround(radius*cos(theta)),
                    y+96+(int)lround(radius*sin(theta)),4,YELLOW);
+        if (show_metric) {
+            FlowerNodeMetric metric;
+            if (!flower_inspection_metric(flower,id,&metric)) {
+                DrawText("Net metric unavailable",x+3,y+DIAGRAM_SIDE+5,12,LIGHTGRAY);
+                return;
+            }
+            DrawText(TextFormat("ID %d   preferred / realized",id),x+3,y+DIAGRAM_SIDE+2,10,LIGHTGRAY);
+            DrawText(TextFormat("Round   %.4f / %.4f",metric.round.preferred,metric.round.realized),
+                     x+3,y+DIAGRAM_SIDE+13,10,LIGHTGRAY);
+            DrawText(TextFormat("Spoke   %.4f / %.4f",metric.spoke.preferred,metric.spoke.realized),
+                     x+3,y+DIAGRAM_SIDE+24,10,LIGHTGRAY);
+            char preferred[16]="n/a", realized[16]="n/a";
+            if (isfinite(metric.angle_defect.preferred))
+                snprintf(preferred,sizeof preferred,"%.4f",metric.angle_defect.preferred);
+            if (isfinite(metric.angle_defect.realized))
+                snprintf(realized,sizeof realized,"%.4f",metric.angle_defect.realized);
+            DrawText(TextFormat("%s rad   %s / %s",metric.boundary?"Turn":"Defect",preferred,realized),
+                     x+3,y+DIAGRAM_SIDE+35,10,LIGHTGRAY);
+            return;
+        }
         FlowerInspectionSample sample;
         if (flower_inspection_sample(flower,96+radius*cos(theta),
                                      96+radius*sin(theta),&sample))
