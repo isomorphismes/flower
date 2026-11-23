@@ -68,7 +68,7 @@ def main() → None:
     require("arm64-v8a" in abis,"system image cannot execute the signed ARM64 app")
     adb(["shell","wm","size","576x960"])
     adb(["shell","settings","put","global","policy_control","immersive.full=org.isomorphisms.flower"])
-    adb(["install","-r","package/app/build/outputs/apk/debug/app-debug.apk"])
+    adb(["install","-r","checked-flower.apk"])
     adb(["logcat","-c"])
     adb(["shell","am","start","-W","-n","org.isomorphisms.flower/android.app.NativeActivity"])
     time.sleep(4)

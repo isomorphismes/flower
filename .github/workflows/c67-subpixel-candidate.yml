@@ -130,9 +130,13 @@ jobs:
           persist-credentials: false
       - name: Verify packaged source and exact APK before install
         run: |
-          cd package
-          test "$(cat app/build/outputs/apk/debug/SOURCE.txt)" = "$(git -C .. rev-parse HEAD)"
-          sha256sum -c app/build/outputs/apk/debug/SHA256SUMS.txt
+          apk=$(find package -type f -name app-debug.apk)
+          test -f "$apk"
+          records=$(dirname "$apk")
+          test "$(cat "$records/SOURCE.txt")" = "$(git rev-parse HEAD)"
+          expected=$(cut -d ' ' -f 1 "$records/SHA256SUMS.txt")
+          printf '%s  %s\n' "$expected" "$apk" | sha256sum -c -
+          cp "$apk" checked-flower.apk
       - name: Enable accelerated Android emulation
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
