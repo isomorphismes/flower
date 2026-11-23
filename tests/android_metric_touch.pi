@@ -1,0 +1,116 @@
+"""Exercise the signed ARM64 Flower APK via Android's native bridge."""
+import pathlib
+import subprocess
+import sys
+import time
+from PIL import Image
+from builtins import bool, abs, RuntimeError, ValueError, int, str, list, round
+
+RESULT ∈ pathlib.Path ← pathlib.Path("metric-touch")
+
+def require(condition ∈ bool, message ∈ str) → None:
+    if not condition:
+        raise RuntimeError(message)
+
+def adb(args ∈ list[str]) → str:
+    command ∈ list[str] ← ["adb"]
+    command.extend(args)
+    reply ∈ bytes ← subprocess.check_output(command)
+    return reply.decode("utf-8").strip()
+
+def hold(x ∈ int, y ∈ int) → None:
+    adb(["shell","input","swipe",str(x),str(y),str(x),str(y),"400"])
+    time.sleep(0.8)
+
+def frame(name ∈ str) → object:
+    path ∈ pathlib.Path ← RESULT.joinpath(name+".png")
+    path.write_bytes(subprocess.check_output(["adb","exec-out","screencap","-p"]))
+    return Image.open(path).convert("RGB")
+
+def pixel_mask(image ∈ object, color ∈ list[int]) → object:
+    # Intersect three Pillow masks in C, without scanning every pixel in Ithon.
+    channels ∈ list[object] ← image.split()
+    from PIL import ImageChops
+    masks ∈ list[object] ← []
+    for i in range(3):
+        lut ∈ list[int] ← []
+        for value in range(256):
+            lut.append(0)
+        lut[color[i]] ← 255
+        masks.append(channels[i].point(lut))
+    return ImageChops.multiply(ImageChops.multiply(masks[0],masks[1]),masks[2])
+
+def nearest(value ∈ float) → int:
+    return int(value+0.5)
+
+def capture_metric(image ∈ object, box ∈ list[int], radius ∈ int) → list[bytes]:
+    left ∈ int ← box[0]
+    top ∈ int ← box[1]
+    scale ∈ float ← (box[2]-left)/192.
+    x ∈ int ← left+nearest(96*scale)
+    y ∈ int ← top+nearest((96+radius)*scale)
+    marker ∈ object ← image.crop((x-2,y-2,x+3,y+3))
+    require(bool(pixel_mask(marker,[253,249,0]).getbbox()),"touch marker missing")
+    bands ∈ list[bytes] ← []
+    for offset in [2,13,24,35]:
+        band ∈ object ← image.crop((left,top+nearest((192+offset)*scale),box[2],top+nearest((202+offset)*scale)))
+        # Metric text uses raylib LIGHTGRAY on the dark footer background.
+        glyphs ∈ object ← pixel_mask(band,[200,200,200])
+        require(bool(glyphs.getbbox()),"missing metric text band")
+        bands.append(glyphs.tobytes())
+    return bands
+
+def main() → None:
+    RESULT.mkdir(exist_ok=True)
+    abis ∈ str ← adb(["shell","getprop","ro.product.cpu.abilist"])
+    bridge ∈ str ← adb(["shell","getprop","ro.dalvik.vm.native.bridge"])
+    print("Emulator ABIs",abis,"native bridge",bridge,flush=True)
+    require("arm64-v8a" in abis,"system image cannot execute the signed ARM64 app")
+    adb(["shell","wm","size","576x960"])
+    adb(["shell","settings","put","global","policy_control","immersive.full=org.isomorphisms.flower"])
+    adb(["install","-r","package/app/build/outputs/apk/debug/app-debug.apk"])
+    adb(["logcat","-c"])
+    adb(["shell","am","start","-W","-n","org.isomorphisms.flower/android.app.NativeActivity"])
+    time.sleep(4)
+    frame("off")
+    hold(55,95)
+    growth ∈ object ← frame("growth")
+    bounds ∈ object ← pixel_mask(growth,[243,244,247]).getbbox()
+    require(bool(bounds),"no real Net chart after Android press")
+    box ∈ list[int] ← list(bounds)
+    width ∈ int ← box[2]-box[0]
+    height ∈ int ← box[3]-box[1]
+    require(165 <= width and width <= 205 and width-height<=2 and height-width<=2,"unexpected chart bounds")
+    scale ∈ float ← width/192.
+    hold(55,95)
+    unselected ∈ object ← frame("stretch")
+    x ∈ int ← box[0]+nearest(96*scale)
+    hold(x,box[1]+nearest(150*scale))
+    interior ∈ list[bytes] ← capture_metric(frame("interior"),box,54)
+    hold(x,box[1]+nearest(117*scale))
+    rim ∈ list[bytes] ← capture_metric(frame("rim"),box,20)
+    require(interior[0]!=rim[0] and interior[3]!=rim[3],"node identity and defect/turn row did not change")
+    # Press the empty chart center. This must neither select a node nor grow.
+    hold(x,box[1]+nearest(96*scale))
+    require(capture_metric(frame("empty-hit"),box,20)==rim,"empty hit altered selection")
+    # The same geometric data must survive a draw-density change.
+    hold(340,95)
+    require(capture_metric(frame("mesh-2x"),box,20)==rim,"mesh density altered readout")
+    try:
+        capture_metric(unselected,box,54)
+        raise ValueError("unselected chart accepted as a measured node")
+    except RuntimeError as error:
+        reason ∈ str ← str(error)
+        require(reason=="touch marker missing","wrong negative control")
+    log ∈ str ← adb(["logcat","-d"])
+    require("steps=0 view=1" in log and "steps=0 view=2" in log,"missing real mode transitions")
+    lines ∈ list[str] ← log.splitlines()
+    for line in lines:
+        if "Flower real-Net chart: steps=" in line:
+            require("steps=0 " in line,"chart press triggered growth")
+    print("PASS ARM64 NativeActivity: Net views, interior/rim selection, four painted metric rows, empty hit and density controls")
+
+try:
+    main()
+finally:
+    RESULT.joinpath("logcat.txt").write_text(adb(["logcat","-d"]))
