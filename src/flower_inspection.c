@@ -19,6 +19,65 @@ static bool valid(const Flower *flower) {
         flower->net.slices >= 3 && flower->net.slices <= FLOWER_SLICES &&
         flower->net.node_count == (flower->net.rings+1)*flower->net.slices;
 }
+static FlowerMetricPair material_lengths(const FlowerSkin *skin, int first, int second) {
+    return (FlowerMetricPair){
+        flower_preferred_edge_length(skin,first,second),
+        distance3(skin->position[first],skin->position[second])
+    };
+}
+
+static double triangle_angle(double a, double b, double opposite) {
+    /* Half-angle form retains small angles without clamping an impossible
+     * target triangle into a real one. All material lengths are positive. */
+    if (!(a+b>opposite && a+opposite>b && b+opposite>a)) return NAN;
+    return 2*atan2(sqrt((opposite+a-b)*(opposite+b-a)),
+                   sqrt((a+b+opposite)*(a+b-opposite)));
+}
+
+bool flower_inspection_metric(const Flower *flower, int node, FlowerNodeMetric *out) {
+    if (!valid(flower) || !out || node<0 || node>=flower->net.node_count)
+        return false;
+    const FlowerNet *net=&flower->net;
+    if (net->cell_count != net->rings*net->slices) return false;
+    const int ring=node/net->slices, sector=node%net->slices;
+    const bool boundary=ring==0 || ring==net->rings;
+    const int forward=ring*net->slices+(sector+1)%net->slices;
+    const int spoke=ring==net->rings ? node-net->slices : node+net->slices;
+    const double full_angle=boundary ? INSPECTION_TAU/2 : INSPECTION_TAU;
+    FlowerNodeMetric metric={
+        .round=material_lengths(&flower->skin,node,forward),
+        .spoke=material_lengths(&flower->skin,node,spoke),
+        .angle_defect={full_angle,full_angle}, .boundary=boundary
+    };
+    /* Only the four cell slots touching this material node can contribute.
+     * Use the same fixed diagonal as the two parent faces of the draw mesh. */
+    int incident=0;
+    for (int row=ring-1; row<=ring; ++row) {
+        if (row<0 || row>=net->rings) continue;
+        for (int column=sector-1; column<=sector; ++column) {
+            int cell_id=row*net->slices+(column+net->slices)%net->slices;
+            const uint16_t *cell=net->cell[cell_id];
+            for (int half=0; half<2; ++half) {
+                const int *corners=flower_triangle_corners[half];
+                for (int i=0; i<3; ++i) {
+                    if (cell[corners[i]]!=node) continue;
+                    int first=cell[corners[(i+1)%3]], second=cell[corners[(i+2)%3]];
+                    if (first>=net->node_count || second>=net->node_count ||
+                        first==node || second==node || first==second) return false;
+                    FlowerMetricPair a=material_lengths(&flower->skin,node,first);
+                    FlowerMetricPair b=material_lengths(&flower->skin,node,second);
+                    FlowerMetricPair c=material_lengths(&flower->skin,first,second);
+                    metric.angle_defect.preferred-=triangle_angle(a.preferred,b.preferred,c.preferred);
+                    metric.angle_defect.realized-=triangle_angle(a.realized,b.realized,c.realized);
+                    ++incident;
+                }
+            }
+        }
+    }
+    if (incident!=(boundary ? 3 : 6)) return false;
+    *out=metric;
+    return true;
+}
 bool flower_inspection_sample(const Flower *flower, double x, double y,
                               FlowerInspectionSample *out) {
     if (!valid(flower) || !out || !isfinite(x) || !isfinite(y))

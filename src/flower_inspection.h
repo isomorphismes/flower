@@ -12,6 +12,17 @@ typedef struct {
     float growth, radial_growth, reference_stretch;
 } FlowerInspectionSample;
 
+typedef struct { double preferred, realized; } FlowerMetricPair;
+typedef struct {
+    FlowerMetricPair round, spoke, angle_defect;
+    bool boundary;
+} FlowerNodeMetric;
+
+/* Forward round edge and outward spoke (inward on the outer rim).
+ * Angle defect and boundary turning are integrated angles in radians.
+ * A triangle-inequality failure leaves the corresponding angle as NaN. */
+bool flower_inspection_metric(const Flower *flower, int node, FlowerNodeMetric *out);
+
 enum { FLOWER_INSPECTION_GROWTH = 1, FLOWER_INSPECTION_STRETCH = 2 };
 
 bool flower_inspection_sample(const Flower *flower, double x, double y,

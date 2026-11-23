@@ -40,6 +40,10 @@ typedef struct {
 } FlowerHold;
 
 void flower_init(Flower *flower);
+/* Reference endpoints and growth use the same material law as relaxation. */
+float flower_preferred_edge_length(const FlowerSkin *skin, int first, int second);
+/* Corner indices of the two material triangles in each ordered Net cell. */
+extern const int flower_triangle_corners[2][3];
 bool flower_net_init(FlowerNet *net, int rings, int slices);
 bool flower_net_hops(const FlowerNet *net, int seed, int radius, int16_t *distance);
 FlowerPolicy flower_policy_default(void);

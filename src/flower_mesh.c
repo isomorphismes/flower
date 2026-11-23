@@ -12,12 +12,12 @@ static FlowerPoint unit(FlowerPoint a) {
     float length=sqrtf(a.x*a.x+a.y*a.y+a.z*a.z);
     return length>1e-8f?scale(a,1/length):(FlowerPoint){0,1,0};
 }
+const int flower_triangle_corners[2][3]={{0,1,3},{1,2,3}};
 static void surface_triangle(const Flower *flower,int cell,int half,FlowerSurfaceTriangle *out) {
-    const int order[2][3]={{0,1,3},{1,2,3}};
     int ring=cell/flower->net.slices, slice=cell%flower->net.slices;
     const int dr[4]={0,0,1,1}, ds[4]={0,1,1,0};
     for (int i=0;i<3;i++) {
-        int corner=order[half][i], node=flower->net.cell[cell][corner];
+        int corner=flower_triangle_corners[half][i], node=flower->net.cell[cell][corner];
         out->node[i]=(uint16_t)node; out->position[i]=flower->skin.position[node];
         out->radial[i]=(float)(ring+dr[corner])/flower->net.rings;
         /* Unwrapped cell chart makes the angular seam ordinary local material. */

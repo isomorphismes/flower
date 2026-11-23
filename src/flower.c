@@ -56,13 +56,15 @@ bool flower_policy_valid(FlowerPolicy p) {
 static bool valid_hit(FlowerHit hit) {
     return hit.hit && isfinite(hit.radial) && isfinite(hit.angle) && hit.radial>=0 && hit.radial<=1 && hit.node<FLOWER_VERTICES;
 }
-static void link_add(FlowerSkin *skin, int first, int second, float stiffness) {
+static FlowerLink reference_link(const FlowerSkin *skin, int first, int second, float stiffness) {
     FlowerPoint delta=sub(skin->reference[second],skin->reference[first]);
     FlowerPoint middle=add(skin->reference[first],skin->reference[second]);
     float radius_squared=middle.x*middle.x+middle.z*middle.z, length_squared=dot(delta,delta);
     float tangent=radius_squared>0 ? (-delta.x*middle.z+delta.z*middle.x)/sqrtf(radius_squared) : 0;
-    FlowerLink *link=&skin->link[skin->link_count++];
-    *link=(FlowerLink){(uint16_t)first,(uint16_t)second,sqrtf(length_squared),fminf(1,tangent*tangent/length_squared),stiffness};
+    return (FlowerLink){(uint16_t)first,(uint16_t)second,sqrtf(length_squared),fminf(1,tangent*tangent/length_squared),stiffness};
+}
+static void link_add(FlowerSkin *skin, int first, int second, float stiffness) {
+    skin->link[skin->link_count++]=reference_link(skin,first,second,stiffness);
 }
 void flower_init(Flower *flower) {
     memset(flower,0,sizeof(*flower));
@@ -112,6 +114,9 @@ static float preferred_link_length(const FlowerSkin *skin, FlowerLink link) {
     float tangent=1+0.5f*(skin->growth[link.first]+skin->growth[link.second]);
     float radial=1+0.5f*(skin->radial_growth[link.first]+skin->radial_growth[link.second]);
     return link.length*sqrtf(tangent*tangent*link.tangent_squared+radial*radial*(1-link.tangent_squared));
+}
+float flower_preferred_edge_length(const FlowerSkin *skin, int first, int second) {
+    return preferred_link_length(skin,reference_link(skin,first,second,0));
 }
 static void relax_material_link(const FlowerNet *net, FlowerSkin *skin, FlowerLink link) {
     FlowerPoint delta=sub(skin->position[link.second],skin->position[link.first]);
