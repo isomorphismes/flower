@@ -1,0 +1,145 @@
+"""Check the readout glyphs on the paused 576x960 Android emulator frames."""
+import pathlib
+import re
+import sys
+from PIL import Image, ImageChops
+from builtins import ValueError, bool, int, str, list, ord
+
+def require(condition ∈ bool, reason ∈ str) → None:
+    if not condition:
+        raise ValueError(reason)
+
+def source_block(content ∈ str, prefix ∈ str) → str:
+    parts ∈ list[str] ← content.split(prefix)
+    require(len(parts)==2, "missing or ambiguous font table")
+    tail ∈ list[str] ← parts[1].split("};")
+    return tail[0]
+
+def load_font(path ∈ str) → dict[int,object]:
+    # raylib 5.5 reconstructs its 128x128 one-bit default atlas from these
+    # two source arrays. Bits are numbered from the low bit of each word.
+    content ∈ str ← pathlib.Path(path).read_text()
+    words_block ∈ str ← source_block(content,"unsigned int defaultFontData[512] = {")
+    widths_block ∈ str ← source_block(content,"int charsWidth[224] = {")
+    words ∈ list[int] ← []
+    widths ∈ list[int] ← []
+    hex_words ∈ list[str] ← re.findall(r"0x[0-9a-fA-F]+",words_block)
+    width_words ∈ list[str] ← re.findall(r"[0-9]+",widths_block)
+    for word in hex_words:
+        words.append(int(word,16))
+    for word in width_words:
+        widths.append(int(word))
+    require(len(words)==512 and len(widths)==224, "default-font atlas layout")
+    font ∈ dict[int,object] ← {}
+    x ∈ int ← 1
+    y ∈ int ← 1
+    for index in range(224):
+        width ∈ int ← widths[index]
+        if x+width+1 >= 128:
+            x ← 1
+            y ← y+11
+        glyph ∈ object ← Image.new("L",(width,10))
+        for row in range(10):
+            for column in range(width):
+                linear ∈ int ← 128*(y+row)+x+column
+                word_value ∈ int ← words[linear // 32]
+                if (word_value >> (linear % 32)) & 1:
+                    glyph.putpixel((column,row),255)
+        font[index+32] ← glyph
+        x ← x+width+1
+    return font
+
+def render(line ∈ str, font ∈ dict[int,object]) → object:
+    image ∈ object ← Image.new("L",(192,10))
+    x ∈ int ← 3
+    characters ∈ list[str] ← list(line)
+    for character in characters:
+        code ∈ int ← ord(character)
+        glyph ∈ object ← font[code]
+        width ∈ int ← glyph.width
+        require(x+width<=192,"readout text exceeds chart")
+        image.paste(glyph,(x,0))
+        x ← x+width+1
+    return image
+
+def mask(image ∈ object, color ∈ list[int]) → object:
+    channels ∈ list[object] ← image.split()
+    masks ∈ list[object] ← []
+    for i in range(3):
+        lut ∈ list[int] ← []
+        for value in range(256):
+            lut.append(0)
+        lut[color[i]] ← 255
+        masks.append(channels[i].point(lut))
+    return ImageChops.multiply(ImageChops.multiply(masks[0],masks[1]),masks[2])
+
+def same_glyphs(actual ∈ object, expected ∈ object) → bool:
+    # Ignore padding around the text, keeping every glyph and internal space.
+    actual_box ∈ object ← actual.getbbox()
+    expected_box ∈ object ← expected.getbbox()
+    if not bool(actual_box) or not bool(expected_box):
+        return False
+    a ∈ object ← actual.crop(actual_box)
+    b ∈ object ← expected.crop(expected_box)
+    actual_size ∈ list[int] ← list(a.size)
+    expected_size ∈ list[int] ← list(b.size)
+    actual_bytes ∈ bytes ← a.tobytes()
+    expected_bytes ∈ bytes ← b.tobytes()
+    return actual_size==expected_size and actual_bytes==expected_bytes
+
+def bands(path ∈ pathlib.Path) → list[object]:
+    image ∈ object ← Image.open(path).convert("RGB")
+    chart ∈ object ← mask(image,[243,244,247]).getbbox()
+    require(bool(chart),"missing material chart")
+    box ∈ list[int] ← list(chart)
+    require(box[2]-box[0]==192 and box[3]-box[1]==192,"requires one-to-one chart pixels")
+    result ∈ list[object] ← []
+    for offset in [2,13,24,35]:
+        top ∈ int ← box[3]+offset
+        band ∈ object ← image.crop((box[0],top,box[2],top+10))
+        result.append(mask(band,[200,200,200]))
+    return result
+
+def verify(frame ∈ str, actual ∈ list[object], expected ∈ list[str], font ∈ dict[int,object]) → None:
+    for i in range(4):
+        require(same_glyphs(actual[i],render(expected[i],font)),frame+" wrong glyphs: "+expected[i])
+        print(frame,expected[i])
+
+def require_rejection(actual ∈ list[object], index ∈ int, wrong ∈ str, expected ∈ list[str],
+                      font ∈ dict[int,object]) → None:
+    # Replace one entire observed band with well-formed glyphs from the same
+    # font. An occupied-band test would still accept the substituted band.
+    changed ∈ list[object] ← actual.copy()
+    changed[index] ← render(wrong,font)
+    require(bool(changed[index].getbbox()),"invalid empty negative control")
+    try:
+        verify("control",changed,expected,font)
+        raise ValueError("accepted wrong field")
+    except ValueError as error:
+        reason ∈ str ← str(error)
+        require(reason=="control wrong glyphs: "+expected[index],"wrong rejection reason")
+        print("REJECT",wrong)
+
+def main() → None:
+    args ∈ list[str] ← sys.argv
+    require(len(args)==3,"requires pinned font source and screenshot directory")
+    font ∈ dict[int,object] ← load_font(args[1])
+    frames ∈ pathlib.Path ← pathlib.Path(args[2])
+    # Step-zero four-decimal values are independently reproducible from the
+    # exact Flower Net. Both target and measured lengths coincide at this step.
+    interior ∈ list[str] ← ["ID 528   preferred / realized","Round   0.1185 / 0.1185",
+                            "Spoke   0.0942 / 0.0942","Defect rad   -0.0003 / -0.0003"]
+    rim ∈ list[str] ← ["ID 16   preferred / realized","Round   0.0216 / 0.0216",
+                       "Spoke   0.0938 / 0.0938","Turn rad   -0.0982 / -0.0982"]
+    actual ∈ list[object] ← bands(frames.joinpath("interior.png"))
+    verify("interior",actual,interior,font)
+    for frame in ["rim","empty-hit","mesh-2x"]:
+        verify(frame,bands(frames.joinpath(frame+".png")),rim,font)
+    require_rejection(actual,0,"ID 526   preferred / realized",interior,font)
+    require_rejection(actual,1,"Round   0.1185 / 0.1186",interior,font)
+    require_rejection(actual,2,"Spoke   0.0942 / 0.1185",interior,font)
+    require_rejection(actual,3,"Defect rad   0.0003 / -0.0003",interior,font)
+    require_rejection(actual,3,"Turn rad   -0.0003 / -0.0003",interior,font)
+    print("PASS sixteen rendered text rows and five wrong-field controls")
+
+main()
