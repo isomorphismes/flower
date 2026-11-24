@@ -6,6 +6,7 @@ on:
       - 'app/build.gradle'
       - 'src/**'
       - 'tests/android_metric_touch.pi'
+      - 'tests/android_metric_text.pi'
       - 'app/src/main/**'
       - '.github/workflows/c67-subpixel-candidate.yml'
   workflow_dispatch:
@@ -154,6 +155,21 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
           script: PATH=/usr/bin:$PATH ITHON_PYTHON=/usr/bin/python3 ithon-interface/ithon tests/android_metric_touch.pi
+      - name: Read the bitmap font at the application’s pinned raylib revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: raysan5/raylib
+          ref: c1ab645ca298a2801097931d1079b10ff7eb9df8
+          path: raylib-font
+          sparse-checkout: src/rtext.c
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Compare every painted metric digit and reject well-formed wrong readouts
+        env:
+          ITHON_PYTHON: /usr/bin/python3
+        run: |
+          test "$(git -C raylib-font rev-parse HEAD)" = c1ab645ca298a2801097931d1079b10ff7eb9df8
+          ithon-interface/ithon tests/android_metric_text.pi raylib-font/src/rtext.c metric-touch
       - name: Retain unmodified Android frames and runtime evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
